@@ -33,6 +33,13 @@ Rectangle {
                 font.bold: true
                 font.pixelSize: parent.width * 0.060
                 color: "#ffffff"
+                
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        Mycroft.MycroftController.sendRequest(modelData.action, {})
+                    }
+                }
             }
 
             Kirigami.Separator {
@@ -50,6 +57,13 @@ Rectangle {
                 maximumLineCount: 2
                 elide: Text.ElideRight
                 color: "#ffffff"
+                
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        Mycroft.MycroftController.sendRequest(modelData.action, {})
+                    }
+                }
             }
         }
         

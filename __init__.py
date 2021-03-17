@@ -65,7 +65,6 @@ class MycroftHomescreen(MycroftSkill):
 
     @resting_screen_handler('MycroftHomescreen')
     def handle_idle(self, message):
-        self.gui.clear()
         self.log.debug('Activating Time/Date resting page')
         self.gui['time_string'] = self.dt_skill.get_display_current_time()
         self.gui['date_string'] = self.dt_skill.get_display_date()
