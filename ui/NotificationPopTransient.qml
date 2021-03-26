@@ -129,7 +129,7 @@ Rectangle {
                     anchors.centerIn: parent
                     width: Kirigami.Units.iconSizes.medium
                     height: width
-                    source: Qt.resolvedUrl("img/close.svg")
+                    source: Qt.resolvedUrl("icons/close.svg")
                 }
 
                 onClicked: {

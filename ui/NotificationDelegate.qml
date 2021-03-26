@@ -90,7 +90,7 @@ Rectangle {
                     anchors.centerIn: parent
                     width: Kirigami.Units.iconSizes.medium
                     height: width
-                    source: Qt.resolvedUrl("img/delete.svg")
+                    source: Qt.resolvedUrl("icons/delete.svg")
                 }
 
                 onClicked: {

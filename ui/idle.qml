@@ -8,7 +8,7 @@ import Mycroft 1.0 as Mycroft
 Mycroft.Delegate {
     id: idleRoot
     skillBackgroundColorOverlay: "transparent"
-    skillBackgroundSource: Qt.resolvedUrl("img/background.png")
+    skillBackgroundSource: Qt.resolvedUrl("wallpapers/" + sessionData.selected_wallpaper)
     property bool horizontalMode: idleRoot.width > idleRoot.height ? 1 : 0
     readonly property color primaryBorderColor: Qt.rgba(1, 0, 0, 0.9)
     readonly property color secondaryBorderColor: Qt.rgba(1, 1, 1, 0.7)

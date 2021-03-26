@@ -8,14 +8,10 @@ import time
 from os import path
 from pathlib import Path
 from mycroft.messagebus.message import Message
-from mycroft.skills.core import MycroftSkill, resting_screen_handler
+from mycroft.skills.core import MycroftSkill, resting_screen_handler, intent_file_handler
 from mycroft.skills.skill_loader import load_skill_module
 from mycroft.util.log import getLogger, LOG
 from mycroft.skills.skill_manager import SkillManager
-
-__author__ = 'aix'
-
-LOGGER = getLogger(__name__)
 
 
 class MycroftHomescreen(MycroftSkill):
@@ -25,6 +21,9 @@ class MycroftHomescreen(MycroftSkill):
         self.skill_manager = None
         self.notifications_model = []
         self.notifications_storage_model = []
+        self.wallpaper_folder = path.dirname(__file__) + '/ui/wallpapers/'
+        self.selected_wallpaper = self.settings.get("wallpaper", "default.png")
+        self.wallpaper_collection = []
 
     def initialize(self):
         now = datetime.datetime.now()
@@ -47,6 +46,8 @@ class MycroftHomescreen(MycroftSkill):
                                   self.handle_clear_notification_storage)
         self.gui.register_handler("homescreen.notification.storage.item.rm",
                                   self.handle_clear_notification_storage_item)
+        
+        self.collect_wallpapers()
 
         # Import Date Time Skill As Date Time Provider
         root_dir = self.root_dir.rsplit('/', 1)[0]
@@ -72,6 +73,7 @@ class MycroftHomescreen(MycroftSkill):
         self.gui['month_string'] = self.dt_skill.get_month_date()
         self.gui['year_string'] = self.dt_skill.get_year()
         self.gui['build_date'] = self.build_info.get('build_date', '')
+        self.gui['selected_wallpaper'] = self.selected_wallpaper
         self.gui['notification'] = {}
         self.gui["notification_model"] = {
             "storedmodel": self.notifications_storage_model,
@@ -106,6 +108,36 @@ class MycroftHomescreen(MycroftSkill):
             with open(filename, 'r') as build_info:
                 data = json.loads(build_info.read())
         return data
+
+    #####################################################################
+    # Wallpaper Manager
+
+    def collect_wallpapers(self):
+        for dirname, dirnames, filenames in os.walk(self.wallpaper_folder):
+            self.wallpaper_collection = filenames
+
+    @intent_file_handler("change.wallpaper.intent")
+    def change_wallpaper(self, message):
+        # Get Current Wallpaper idx
+        current_idx = self.get_wallpaper_idx(self.selected_wallpaper)
+        collection_length = len(self.wallpaper_collection) - 1
+        if not current_idx == collection_length:
+            fidx = current_idx + 1
+            self.selected_wallpaper = self.wallpaper_collection[fidx]
+            self.settings["wallpaper"] = self.wallpaper_collection[fidx]
+
+        else:
+            self.selected_wallpaper = self.wallpaper_collection[0]
+            self.settings["wallpaper"] = self.wallpaper_collection[0]
+
+        self.gui['selected_wallpaper'] = self.selected_wallpaper
+
+    def get_wallpaper_idx(self, filename):
+        try:
+            index_element = self.wallpaper_collection.index(filename)
+            return index_element
+        except ValueError:
+            return None
 
     #####################################################################
     # Manage notifications

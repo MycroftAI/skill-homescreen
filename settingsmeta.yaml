@@ -1,0 +1,8 @@
+skillMetadata:
+   sections:
+      - name: Display
+        fields:
+          - name: wallpaper
+            type: text
+            label: Selected Wallpaper
+            value: "default.png"
