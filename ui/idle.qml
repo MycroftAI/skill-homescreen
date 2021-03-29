@@ -233,10 +233,9 @@ Mycroft.Delegate {
         color: "white"
         layer.enabled: true
         layer.effect: DropShadow {
-            verticalOffset: 2
             color: "#000000"
-            radius: 5
-            spread: 0.5
+            radius: 10
+            spread: 0.2
             samples: 16
         }
     }
