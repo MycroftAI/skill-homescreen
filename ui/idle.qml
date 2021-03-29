@@ -82,11 +82,9 @@ Mycroft.Delegate {
             border.color: "#8F8F8F"
             layer.enabled: true
             layer.effect: DropShadow {
-                horizontalOffset: 2
-                verticalOffset: 2
                 color: "#000000"
-                radius: 4
-                spread: 0.4
+                radius: 10
+                spread: 0.2
                 samples: 16
             }
         }
@@ -148,10 +146,9 @@ Mycroft.Delegate {
                 text: sessionData.time_string.replace(":", "꞉")
                 layer.enabled: true
                 layer.effect: DropShadow {
-                    verticalOffset: 2
                     color: "#000000"
-                    radius: 5
-                    spread: 0.5
+                    radius: 10
+                    spread: 0.2
                     samples: 16
                 }
             }
@@ -181,10 +178,9 @@ Mycroft.Delegate {
                 color: "white"
                 layer.enabled: true
                 layer.effect: DropShadow {
-                    verticalOffset: 2
                     color: "#000000"
-                    radius: 5
-                    spread: 0.5
+                    radius: 10
+                    spread: 0.2
                     samples: 16
                 }
             }
@@ -214,10 +210,9 @@ Mycroft.Delegate {
                 color: "white"
                 layer.enabled: true
                 layer.effect: DropShadow {
-                    verticalOffset: 2
                     color: "#000000"
-                    radius: 5
-                    spread: 0.5
+                    radius: 10
+                    spread: 0.2
                     samples: 16
                 }
             }
