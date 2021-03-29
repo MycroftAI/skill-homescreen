@@ -206,7 +206,7 @@ Mycroft.Delegate {
                 wrapMode: Text.WordWrap
                 font.family: "Noto Sans Display"
                 font.weight: Font.DemiBold
-                text: sessionData.month_string + ", " + sessionData.year_string
+                text: sessionData.month_string
                 color: "white"
                 layer.enabled: true
                 layer.effect: DropShadow {
