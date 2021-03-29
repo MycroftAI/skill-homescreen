@@ -58,7 +58,7 @@ class MycroftHomescreen(MycroftSkill):
 
             self.dt_skill = TimeSkill()
         except:
-            print("Failed To Import DateTime Skill")
+            self.log.info("Failed To Import DateTime Skill")
 
     #####################################################################
     # Homescreen Registeration & Handling
