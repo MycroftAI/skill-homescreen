@@ -49,6 +49,7 @@ class MycroftHomescreen(MycroftSkill):
         self.collect_wallpapers()
 
         # Import Date Time Skill As Date Time Provider
+        # TODO - replace with Skills API call in 21.02
         root_dir = self.root_dir.rsplit("/", 1)[0]
         try:
             time_date_path = str(root_dir) + "/mycroft-date-time.mycroftai/__init__.py"
