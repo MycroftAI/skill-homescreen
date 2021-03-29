@@ -64,7 +64,7 @@ class MycroftHomescreen(MycroftSkill):
     # Homescreen Registeration & Handling
 
     @resting_screen_handler("MycroftHomescreen")
-    def handle_idle(self, message):
+    def handle_idle(self, _):
         self.log.debug('Activating Time/Date resting page')
         self.gui['time_string'] = self.dt_skill.get_display_current_time()
         self.gui['date_string'] = self.dt_skill.get_display_date()
@@ -195,7 +195,7 @@ class MycroftHomescreen(MycroftSkill):
                     del self.notifications_model[i]
                 break
 
-    def handle_clear_notification_storage(self, message):
+    def handle_clear_notification_storage(self, _):
         """ Clear All Notification Storage Model """
         self.notifications_storage_model = []
         self.gui["notification_model"] = {
