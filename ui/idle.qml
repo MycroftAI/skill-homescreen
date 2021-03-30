@@ -1,7 +1,7 @@
 import QtQuick.Layouts 1.4
 import QtQuick 2.4
 import QtQuick.Controls 2.0
-import org.kde.kirigami 2.4 as Kirigami
+import org.kde.kirigami 2.13 as Kirigami
 import QtGraphicalEffects 1.0
 import Mycroft 1.0 as Mycroft
 
@@ -16,6 +16,18 @@ Mycroft.Delegate {
     property var notificationData: sessionData.notification
     property var notificationModel: sessionData.notification_model
     signal clearNotificationSessionData
+    
+    Image {
+        id: testimageitem
+        visible: false
+        source: Qt.resolvedUrl("wallpapers/" + sessionData.selected_wallpaper)
+        
+        onSourceChanged: {
+            delay(1250, function() {
+                imagePalette.source = testimageitem
+            })
+        }
+    }
 
     onNotificationDataChanged: {
         console.log("Notification Should Have Changed")
@@ -23,6 +35,22 @@ Mycroft.Delegate {
             display_notification()
         }
     }
+
+    Timer {
+           id: timer
+    }
+
+    function delay(delayTime, cb) {
+            timer.interval = delayTime;
+            timer.repeat = false;
+            timer.triggered.connect(cb);
+            timer.start();
+    }
+
+    //onSkillBackgroundSourceChanged: {
+    //    console.log("Source Image Changed")
+    //    imagePalette.source = skillBackgroundSource
+    //}
 
     onNotificationModelChanged: {
         if(notificationModel.count > 0) {
@@ -68,6 +96,21 @@ Mycroft.Delegate {
             console.log(idleRoot.notificationData)
         }
     }
+    
+    Kirigami.ImageColors {
+        id: imagePalette
+        //source: Qt.resolvedUrl("wallpapers/" + sessionData.selected_wallpaper)
+        property color dropColor: Kirigami.ColorUtils.brightnessForColor(dominantContrast) === Kirigami.ColorUtils.Light ? imagePalette.closestToWhite : imagePalette.closestToBlack
+        
+        onSourceChanged: {
+            console.log("dominant:" + imagePalette.dominant)
+            console.log("dominantContrast:" + imagePalette.dominantContrast)
+            console.log("highlight:" + imagePalette.highlight)
+            console.log("average:" + imagePalette.average)
+            console.log("background:" + imagePalette.background)
+            console.log("foreground:" + imagePalette.foreground)
+        }
+    }
 
     AbstractButton {
         anchors.right: parent.right
@@ -82,9 +125,11 @@ Mycroft.Delegate {
             border.color: "#8F8F8F"
             layer.enabled: true
             layer.effect: DropShadow {
+                horizontalOffset: 2
+                verticalOffset: 2
                 color: "#000000"
-                radius: 10
-                spread: 0.2
+                radius: 4
+                spread: 0.4
                 samples: 16
             }
         }
@@ -146,9 +191,10 @@ Mycroft.Delegate {
                 text: sessionData.time_string.replace(":", "꞉")
                 layer.enabled: true
                 layer.effect: DropShadow {
-                    color: "#000000"
-                    radius: 10
-                    spread: 0.2
+                    verticalOffset: 2
+                    color: imagePalette.dropColor
+                    radius: 5
+                    spread: 0.5
                     samples: 16
                 }
             }
@@ -178,9 +224,10 @@ Mycroft.Delegate {
                 color: "white"
                 layer.enabled: true
                 layer.effect: DropShadow {
-                    color: "#000000"
-                    radius: 10
-                    spread: 0.2
+                    verticalOffset: 2
+                    color: imagePalette.dropColor
+                    radius: 5
+                    spread: 0.5
                     samples: 16
                 }
             }
@@ -206,13 +253,14 @@ Mycroft.Delegate {
                 wrapMode: Text.WordWrap
                 font.family: "Noto Sans Display"
                 font.weight: Font.DemiBold
-                text: sessionData.month_string
+                text: sessionData.month_string + ", " + sessionData.year_string
                 color: "white"
                 layer.enabled: true
                 layer.effect: DropShadow {
-                    color: "#000000"
-                    radius: 10
-                    spread: 0.2
+                    verticalOffset: 2
+                    color: imagePalette.dropColor
+                    radius: 5
+                    spread: 0.5
                     samples: 16
                 }
             }
@@ -233,9 +281,10 @@ Mycroft.Delegate {
         color: "white"
         layer.enabled: true
         layer.effect: DropShadow {
-            color: "#000000"
-            radius: 10
-            spread: 0.2
+            verticalOffset: 2
+            color: imagePalette.dropColor
+            radius: 5
+            spread: 0.5
             samples: 16
         }
     }
