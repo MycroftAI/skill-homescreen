@@ -70,7 +70,8 @@ class MycroftHomescreen(MycroftSkill):
         self.gui['time_string'] = self.dt_skill.get_display_current_time()
         self.gui['date_string'] = self.dt_skill.get_display_date()
         self.gui['weekday_string'] = self.dt_skill.get_weekday()
-        self.gui['month_string'] = self.dt_skill.get_month_date()
+        self.gui['month_string'] = self.split_month_string(self.dt_skill.get_month_date())[1]
+        self.gui['day_string'] = self.split_month_string(self.dt_skill.get_month_date())[0]
         self.gui['year_string'] = self.dt_skill.get_year()
         self.gui['build_date'] = self.build_info.get('build_date', '')
         self.gui['selected_wallpaper'] = self.selected_wallpaper
@@ -85,15 +86,28 @@ class MycroftHomescreen(MycroftSkill):
         self.gui["time_string"] = self.dt_skill.get_display_current_time()
         self.gui["date_string"] = self.dt_skill.get_display_date()
         self.gui["weekday_string"] = self.dt_skill.get_weekday()
-        self.gui["month_string"] = self.dt_skill.get_month_date()
+        self.gui["month_string"] = self.split_month_string(self.dt_skill.get_month_date())[1]
+        self.gui['day_string'] = self.split_month_string(self.dt_skill.get_month_date())[0]
         self.gui["year_string"] = self.dt_skill.get_year()
 
     def update_dt(self):
         self.gui["time_string"] = self.dt_skill.get_display_current_time()
         self.gui["date_string"] = self.dt_skill.get_display_date()
         self.gui["weekday_string"] = self.dt_skill.get_weekday()
-        self.gui["month_string"] = self.dt_skill.get_month_date()
+        self.gui["month_string"] = self.split_month_string(self.dt_skill.get_month_date())[1]
+        self.gui['day_string'] = self.split_month_string(self.dt_skill.get_month_date())[0]
         self.gui["year_string"] = self.dt_skill.get_year()
+        
+    def split_month_string(self, varstring):
+        month_string = varstring.split(" ")
+        if self.config_core.get('date_format') == 'MDY':
+            day_string = month_string[1]
+            month_string = month_string[0]
+        else:
+            day_string = month_string[0]
+            month_string = month_string[1]
+
+        return [day_string, month_string]
 
     #####################################################################
     # Build Info
