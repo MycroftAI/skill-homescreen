@@ -8,16 +8,14 @@ from os import path
 from pathlib import Path
 
 from mycroft.messagebus.message import Message
+from mycroft.skills.api import SkillApi
 from mycroft.skills.core import MycroftSkill, resting_screen_handler, intent_file_handler
-from mycroft.skills.skill_loader import load_skill_module
-from mycroft.skills.skill_manager import SkillManager
 
 
 class MycroftHomescreen(MycroftSkill):
     # The constructor of the skill, which calls MycroftSkill's constructor
     def __init__(self):
         super(MycroftHomescreen, self).__init__(name="MycroftHomescreen")
-        self.skill_manager = None
         self.notifications_model = []
         self.notifications_storage_model = []
         self.wallpaper_folder = path.dirname(__file__) + '/ui/wallpapers/'
@@ -30,7 +28,6 @@ class MycroftHomescreen(MycroftSkill):
             now.year, now.month, now.day, now.hour, now.minute
         ) + datetime.timedelta(seconds=60)
         self.schedule_repeating_event(self.update_dt, callback_time, 10)
-        self.skill_manager = SkillManager(self.bus)
 
         # Handler Registeration For Notifications
         self.add_event("homescreen.notification.set",
@@ -45,21 +42,9 @@ class MycroftHomescreen(MycroftSkill):
                                   self.handle_clear_notification_storage)
         self.gui.register_handler("homescreen.notification.storage.item.rm",
                                   self.handle_clear_notification_storage_item)
-        
+
         self.collect_wallpapers()
-
-        # Import Date Time Skill As Date Time Provider
-        # TODO - replace with Skills API call in 21.02
-        root_dir = self.root_dir.rsplit("/", 1)[0]
-        try:
-            time_date_path = str(root_dir) + "/mycroft-date-time.mycroftai/__init__.py"
-            time_date_id = "datetimeskill"
-            datetimeskill = load_skill_module(time_date_path, time_date_id)
-            from datetimeskill import TimeSkill
-
-            self.dt_skill = TimeSkill()
-        except:
-            self.log.info("Failed To Import DateTime Skill")
+        self.dt_skill = SkillApi.get("mycroft-date-time.mycroftai")
 
     #####################################################################
     # Homescreen Registeration & Handling
