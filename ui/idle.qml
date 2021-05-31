@@ -8,7 +8,7 @@ import Mycroft 1.0 as Mycroft
 Mycroft.CardDelegate {
     id: idleRoot
     skillBackgroundColorOverlay: "transparent"
-    cardBackgoundOverlayColor: "transparent"
+    cardBackgroundOverlayColor: "transparent"
     cardRadius: 0
     skillBackgroundSource: Qt.resolvedUrl("wallpapers/" + sessionData.selected_wallpaper)
     property bool horizontalMode: idleRoot.width > idleRoot.height ? 1 : 0
