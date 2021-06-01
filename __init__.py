@@ -16,7 +16,6 @@ import datetime
 import json
 import os
 import time
-from os import path
 from pathlib import Path
 
 from mycroft.messagebus.message import Message
@@ -32,7 +31,7 @@ class MycroftHomescreen(MycroftSkill):
         self.skill_manager = None
         self.notifications_model = []
         self.notifications_storage_model = []
-        self.wallpaper_folder = path.dirname(__file__) + '/ui/wallpapers/'
+        self.wallpaper_folder = self.root_dir + '/ui/wallpapers/'
         self.selected_wallpaper = self.settings.get("wallpaper", "default.png")
         self.wallpaper_collection = []
 
