@@ -158,6 +158,7 @@ class MycroftHomescreen(MycroftSkill):
             self.settings["wallpaper"] = self.wallpaper_collection[0]
 
         self.gui['selected_wallpaper'] = self.selected_wallpaper
+        self.bus.emit(Message('skill.homescreen.notify.wallpaper_changed'))
 
     def get_wallpaper_idx(self, filename):
         try:
