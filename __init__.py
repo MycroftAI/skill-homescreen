@@ -22,7 +22,7 @@ from os import path
 from pathlib import Path
 
 from mycroft.messagebus.message import Message
-from mycroft.skills.core import MycroftSkill, resting_screen_handler, intent_file_handler
+from mycroft.skills import MycroftSkill, resting_screen_handler, intent_handler
 from mycroft.skills.skill_loader import load_skill_module
 from mycroft.skills.skill_manager import SkillManager
 
@@ -146,7 +146,7 @@ class MycroftHomescreen(MycroftSkill):
         for dirname, dirnames, filenames in os.walk(self.wallpaper_folder):
             self.wallpaper_collection = filenames
 
-    @intent_file_handler("change.wallpaper.intent")
+    @intent_handler("change.wallpaper.intent")
     def change_wallpaper(self, message):
         # Get Current Wallpaper idx
         current_idx = self.get_wallpaper_idx(self.selected_wallpaper)
