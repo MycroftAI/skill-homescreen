@@ -108,7 +108,6 @@ Mycroft.CardDelegate {
                 Layout.fillHeight: true
                 Layout.alignment: Qt.AlignRight | Qt.AlignTop
                 fontSizeMode: Text.Fit;
-                font.family: "Noto Sans Display"
                 minimumPixelSize: 50;
                 font.pixelSize: parent.height;
                 verticalAlignment: Text.AlignVCenter
@@ -137,7 +136,7 @@ Mycroft.CardDelegate {
                 anchors.fill: parent
                 text: sessionData.time_string.replace(":", "꞉")
                 fontSizeMode: Text.Fit;
-                font.family: "Noto Sans Display Semibold"
+                font.bold: true;
                 minimumPixelSize: 50;
                 font.pixelSize: parent.height;
                 verticalAlignment: Text.AlignVCenter
@@ -165,7 +164,6 @@ Mycroft.CardDelegate {
                 anchors.fill: parent
                 text: sessionData.weekday_string + " " + sessionData.month_string.substring(0,3) + " " + sessionData.day_string
                 fontSizeMode: Text.Fit;
-                font.family: "Noto Sans Display"
                 minimumPixelSize: 50;
                 font.pixelSize: parent.height;
                 verticalAlignment: Text.AlignVCenter
@@ -326,7 +324,6 @@ Mycroft.CardDelegate {
         anchors.bottomMargin: -Mycroft.Units.gridUnit * 2
         font.pixelSize: 22
         wrapMode: Text.WordWrap
-        font.family: "Noto Sans Display"
         text: "BI " + sessionData.build_date
         color: "white"
         layer.enabled: true
