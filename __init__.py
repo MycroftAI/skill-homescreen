@@ -34,6 +34,8 @@ class MycroftHomescreen(MycroftSkill):
         self.wallpaper_folder = self.root_dir + '/ui/wallpapers/'
         self.selected_wallpaper = self.settings.get("wallpaper", "default.png")
         self.wallpaper_collection = []
+        self.widget_type_list = ["alarm, timer"]
+        self.active_widgets = []
 
     def initialize(self):
         now = datetime.datetime.now()
@@ -56,6 +58,7 @@ class MycroftHomescreen(MycroftSkill):
                                   self.handle_clear_notification_storage)
         self.gui.register_handler("homescreen.notification.storage.item.rm",
                                   self.handle_clear_notification_storage_item)
+        self.add_event("homescreen.widget.set", self.handle_widget_request)
         
         self.collect_wallpapers()
 
@@ -245,6 +248,37 @@ class MycroftHomescreen(MycroftSkill):
                     "storedmodel": self.notifications_storage_model,
                     "count": len(self.notifications_storage_model),
                 }
+
+    #####################################################################
+    # Manage Widgets
+    
+    def handle_widget_request(self, message):
+        widget_type = message.data.get("type", "")
+        widget_action = message.data.get("action", "")
+        widget_response = message.data.get("response", "")
+        
+        widget = {"widget_type": widget_type, 
+                  "widget_action": widget_action, 
+                  "widget_response": widget_response}
+        
+        if widget_action == "activate":
+            self.handle_widget_activate(widget)
+        
+        if widget_action == "deactivate":
+            self.handle_widget_deactivate(widget)
+        
+    def handle_widget_activate(self, widget):
+        if widget not in self.active_widgets:
+            self.active_widgets.append(widget)
+            self.gui["widgetObject"] = widget
+
+    def handle_widget_deactivate(self, widget):
+        if widget in self.active_widgets:
+            self.gui["widgetObject"] = widget
+        
+    def handle_widget_response(self, message):
+        response = message.data.get("response")
+        self.bus.emit(Message(response))
 
     def stop(self):
         pass

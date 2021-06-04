@@ -22,7 +22,23 @@ Mycroft.CardDelegate {
     property int notificationCounter: sessionData.notifcation_counter
     property var notificationData: sessionData.notification
     property var notificationModel: sessionData.notification_model
+    property var widgetObject: sessionData.widgetObject
     signal clearNotificationSessionData
+    
+    onWidgetObjectChanged: {
+        var widget_type = widgetObject.widget_type
+        var widget_action = widgetObject.widget_action
+        var widget_response = widgetObject.widget_response
+        
+        if(widget_type == "alarm") {
+            if(widget_action == "activate"){
+                widgetRightTop.visible = true
+                widgetRightTop.widgetAction = widget_response
+            } else if(widget_action == "deactivate") {
+                widgetRightTop.visible = false
+            }
+        }
+    }
 
     onNotificationDataChanged: {
         console.log("Notification Should Have Changed")
@@ -265,6 +281,15 @@ Mycroft.CardDelegate {
                 spread: idleRoot.dropSpread
                 radius: idleRoot.dropRadius
                 color:  idleRoot.dropColor
+            }
+            
+            property var widgetAction
+            
+            MouseArea {
+                anchors.fill: parent
+                onClicked: {
+                    triggerGuiEvent("homescreen.widget.action", {"action": widgetAction})
+                }
             }
         }
 
