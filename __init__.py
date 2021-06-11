@@ -22,6 +22,7 @@ from mycroft.messagebus.message import Message
 from mycroft.skills import MycroftSkill, resting_screen_handler, intent_handler
 from mycroft.skills.skill_loader import load_skill_module
 from mycroft.skills.skill_manager import SkillManager
+from mycroft.skills.api import SkillApi
 
 
 class MycroftHomescreen(MycroftSkill):
@@ -72,6 +73,9 @@ class MycroftHomescreen(MycroftSkill):
         except:
             self.log.info("Failed To Import DateTime Skill")
 
+        self.weather_api = SkillApi.get('mycroft-weather.mycroftai')
+        self.schedule_repeating_event(self.update_weather, callback_time, 900)
+
     #####################################################################
     # Homescreen Registeration & Handling
 
@@ -91,6 +95,7 @@ class MycroftHomescreen(MycroftSkill):
             "storedmodel": self.notifications_storage_model,
             "count": len(self.notifications_storage_model),
         }
+        self.update_weather()
         self.gui.show_page("idle.qml")
 
     def handle_idle_update_time(self):
@@ -119,6 +124,11 @@ class MycroftHomescreen(MycroftSkill):
             month_string = month_string[1]
 
         return [day_string, month_string]
+
+    def update_weather(self):
+        current_weather_report = self.weather_api.get_current_weather_homescreen()
+        self.gui["weather_code"] = current_weather_report.get("weather_code")
+        self.gui["weather_temp"] = current_weather_report.get("weather_temp")
 
     #####################################################################
     # Build Info
