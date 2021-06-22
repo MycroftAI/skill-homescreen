@@ -10,7 +10,7 @@ Mycroft.CardDelegate {
     skillBackgroundColorOverlay: "transparent"
     cardBackgroundOverlayColor: "transparent"
     cardRadius: 0
-    skillBackgroundSource: Qt.resolvedUrl("wallpapers/" + sessionData.selected_wallpaper)
+    skillBackgroundSource: Qt.resolvedUrl(sessionData.wallpaper_path + sessionData.selected_wallpaper)
     property bool horizontalMode: idleRoot.width > idleRoot.height ? 1 : 0
     readonly property color primaryBorderColor: Qt.rgba(1, 0, 0, 0.9)
     readonly property color secondaryBorderColor: Qt.rgba(1, 1, 1, 0.7)
