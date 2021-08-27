@@ -89,7 +89,7 @@ Mycroft.CardDelegate {
 
             Kirigami.Icon {
                 id: weatherItemIcon
-                source: Qt.resolvedUrl("icons/sun.svg")
+                source: sessionData.homeScreenWeatherCondition
                 Layout.preferredWidth: Mycroft.Units.gridUnit * 3
                 Layout.preferredHeight: Mycroft.Units.gridUnit * 3
                 visible: false
@@ -103,7 +103,7 @@ Mycroft.CardDelegate {
 
             Text {
                 id: weatherItem
-                text: "50°"
+                text: sessionData.homeScreenTemperature + "°"
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Layout.alignment: Qt.AlignRight | Qt.AlignTop
@@ -134,7 +134,7 @@ Mycroft.CardDelegate {
             Text {
                 id: timeItem
                 anchors.fill: parent
-                text: sessionData.time_string.replace(":", "꞉")
+                text: sessionData.homeScreenTime.replace(":", "꞉")
                 fontSizeMode: Text.Fit;
                 font.bold: true;
                 minimumPixelSize: 50;
@@ -162,7 +162,7 @@ Mycroft.CardDelegate {
             Text {
                 id: dateItem
                 anchors.fill: parent
-                text: sessionData.weekday_string + " " + sessionData.month_string.substring(0,3) + " " + sessionData.day_string
+                text: sessionData.homeScreenDate
                 fontSizeMode: Text.Fit;
                 minimumPixelSize: 50;
                 font.pixelSize: parent.height;
@@ -317,14 +317,14 @@ Mycroft.CardDelegate {
     
     Label {
         id: buildDate
-        visible: sessionData.build_date === "" ? 0 : 1
-        enabled: sessionData.build_date === "" ? 0 : 1
+        visible: sessionData.buildDate === "" ? 0 : 1
+        enabled: sessionData.buildDate === "" ? 0 : 1
         anchors.left: parent.left
         anchors.bottom: parent.bottom
         anchors.bottomMargin: -Mycroft.Units.gridUnit * 2
         font.pixelSize: 22
         wrapMode: Text.WordWrap
-        text: "BI " + sessionData.build_date
+        text: "BI " + sessionData.buildDate
         color: "white"
         layer.enabled: true
         layer.effect: DropShadow {
