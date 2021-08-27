@@ -43,7 +43,7 @@ class MycroftHomescreen(MycroftSkill):
         self.notifications_storage_model = []
         self.def_wallpaper_folder = path.dirname(__file__) + '/ui/wallpapers/'
         self.loc_wallpaper_folder = self.file_system.path + '/wallpapers/'
-        self.selected_wallpaper = self.settings.get("wallpaper", "default.png")
+        self.selected_wallpaper = self.settings.get("wallpaper", "nasa.png")
         self.wallpaper_collection = []
         self.display_time = None
         self.display_date = None

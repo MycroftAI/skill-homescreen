@@ -49,7 +49,7 @@ Item {
         layer.effect: DropShadow {
             spread: 0.3
             radius: 8
-            color:  Qt.rgba(0.2, 0.2, 0.2, 0.60)
+            color:  Qt.rgba(0.1, 0.1, 0.1, 0.75)
         }
         layer.enabled: true
     }
