@@ -75,6 +75,36 @@ Mycroft.CardDelegate {
             console.log(idleRoot.notificationData)
         }
     }
+
+    function getWeatherImagery(weathercode) {
+        console.log(weathercode);
+        switch(weathercode) {
+        case 0:
+            return "icons/sun.svg";
+            break
+        case 1:
+            return "icons/partial_clouds.svg";
+            break
+        case 2:
+            return "icons/clouds.svg";
+            break
+        case 3:
+            return "icons/rain.svg";
+            break
+        case 4:
+            return "icons/rain.svg";
+            break
+        case 5:
+            return "icons/storm.svg";
+            break
+        case 6:
+            return "icons/snow.svg";
+            break
+        case 7:
+            return "icons/fog.svg";
+            break
+        }
+    }
     
     Item {
         anchors.fill: parent
@@ -89,7 +119,7 @@ Mycroft.CardDelegate {
 
             Kirigami.Icon {
                 id: weatherItemIcon
-                source: Qt.resolvedUrl("icons/sun.svg")
+                source: Qt.resolvedUrl(getWeatherImagery(sessionData.weather_code))
                 Layout.preferredWidth: Mycroft.Units.gridUnit * 3
                 Layout.preferredHeight: Mycroft.Units.gridUnit * 3
                 visible: false
@@ -103,7 +133,7 @@ Mycroft.CardDelegate {
 
             Text {
                 id: weatherItem
-                text: "50°"
+                text: sessionData.weather_temp
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Layout.alignment: Qt.AlignRight | Qt.AlignTop
