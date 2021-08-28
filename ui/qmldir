@@ -1,4 +1,0 @@
-idle 1.0 idle.qml
-NotificationDelegate 1.0 NotificationDelegate.qml
-NotificationPopTransient 1.0 NotificationPopTransient.qml
-NotificationPopSticky 1.0 NotificationPopSticky.qml

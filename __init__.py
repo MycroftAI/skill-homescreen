@@ -39,8 +39,6 @@ class MycroftHomescreen(MycroftSkill):
     def __init__(self):
         super(MycroftHomescreen, self).__init__(name="MycroftHomescreen")
         self.skill_manager = None
-        self.notifications_model = []
-        self.notifications_storage_model = []
         self.def_wallpaper_folder = path.dirname(__file__) + '/ui/wallpapers/'
         self.loc_wallpaper_folder = self.file_system.path + '/wallpapers/'
         self.selected_wallpaper = self.settings.get("wallpaper", "nasa.png")
@@ -68,23 +66,12 @@ class MycroftHomescreen(MycroftSkill):
         self._schedule_weather_request()
         self._query_active_alarms()
 
-        # Handler Registeration For Notifications
-        self.add_event("homescreen.notification.set", self.handle_display_notification)
+        # Handler Registration For Notifications
         self.add_event("homescreen.wallpaper.set", self.handle_set_wallpaper)
         self.add_event("skill.alarm.active-queried", self.handle_alarm_status)
         self.add_event("skill.alarm.scheduled", self.handle_alarm_status)
         self.add_event("skill.weather.local-forecast-obtained",
                        self.handle_local_forecast_response)
-        self.gui.register_handler("homescreen.notification.set",
-                                  self.handle_display_notification)
-        self.gui.register_handler("homescreen.notification.pop.clear",
-                                  self.handle_clear_notification_data)
-        self.gui.register_handler("homescreen.notification.pop.clear.delete",
-                                  self.handle_clear_delete_notification_data)
-        self.gui.register_handler("homescreen.notification.storage.clear",
-                                  self.handle_clear_notification_storage)
-        self.gui.register_handler("homescreen.notification.storage.item.rm",
-                                  self.handle_clear_notification_storage_item)
 
         if not self.file_system.exists("wallpapers"):
             os.mkdir(path.join(self.file_system.path, "wallpapers"))
@@ -143,11 +130,6 @@ class MycroftHomescreen(MycroftSkill):
         self.gui['buildDate'] = self.build_info.get('build_date', '')
         self.gui['wallpaper_path'] = self.check_wallpaper_path(self.selected_wallpaper)
         self.gui['selected_wallpaper'] = self.selected_wallpaper
-        self.gui['notification'] = {}
-        self.gui["notification_model"] = {
-            "storedmodel": self.notifications_storage_model,
-            "count": len(self.notifications_storage_model),
-        }
         if self.platform == MARK_II:
             page = "mark_ii_idle.qml"
         else:
@@ -232,85 +214,6 @@ class MycroftHomescreen(MycroftSkill):
             return self.def_wallpaper_folder
         elif path.exists(file_loc_check):
             return self.loc_wallpaper_folder
-
-    #####################################################################
-    # Manage notifications
-
-    def handle_display_notification(self, message):
-        """ Get Notification & Action """
-        notification_message = {
-            "sender": message.data.get("sender", ""),
-            "text": message.data.get("text", ""),
-            "action": message.data.get("action", ""),
-            "type": message.data.get("type", ""),
-        }
-        if notification_message not in self.notifications_model:
-            self.notifications_model.append(notification_message)
-            self.gui["notifcation_counter"] = len(self.notifications_model)
-            self.gui["notification"] = notification_message
-            time.sleep(2)
-            self.bus.emit(Message("homescreen.notification.show"))
-
-    def handle_clear_notification_data(self, message):
-        """ Clear Pop Notification """
-        notification_data = message.data.get("notification", "")
-        self.notifications_storage_model.append(notification_data)
-        for i in range(len(self.notifications_model)):
-            if (
-                self.notifications_model[i]["sender"] == notification_data["sender"]
-                and self.notifications_model[i]["text"] == notification_data["text"]
-            ):
-                if not len(self.notifications_model) > 0:
-                    del self.notifications_model[i]
-                    self.notifications_model = []
-                else:
-                    del self.notifications_model[i]
-                break
-
-        self.gui["notification_model"] = {
-            "storedmodel": self.notifications_storage_model,
-            "count": len(self.notifications_storage_model),
-        }
-        self.gui["notification"] = {}
-
-    def handle_clear_delete_notification_data(self, message):
-        """ Clear Pop Notification & Delete Notification Data """
-        notification_data = message.data.get("notification", "")
-        for i in range(len(self.notifications_model)):
-            if (
-                self.notifications_model[i]["sender"] == notification_data["sender"]
-                and self.notifications_model[i]["text"] == notification_data["text"]
-            ):
-                if not len(self.notifications_model) > 0:
-                    del self.notifications_model[i]
-                    self.notifications_model = []
-                else:
-                    del self.notifications_model[i]
-                break
-
-    def handle_clear_notification_storage(self, _):
-        """ Clear All Notification Storage Model """
-        self.notifications_storage_model = []
-        self.gui["notification_model"] = {
-            "storedmodel": self.notifications_storage_model,
-            "count": len(self.notifications_storage_model),
-        }
-
-    def handle_clear_notification_storage_item(self, message):
-        """ Clear Single Item From Notification Storage Model """
-        notification_data = message.data.get("notification", "")
-        for i in range(len(self.notifications_storage_model)):
-            if (
-                self.notifications_storage_model[i]["sender"]
-                == notification_data["sender"]
-                and self.notifications_storage_model[i]["text"]
-                == notification_data["text"]
-            ):
-                self.notifications_storage_model.pop(i)
-                self.gui["notification_model"] = {
-                    "storedmodel": self.notifications_storage_model,
-                    "count": len(self.notifications_storage_model),
-                }
 
     def update_date(self):
         """Formats the datetime object returned from the parser for display purposes."""
