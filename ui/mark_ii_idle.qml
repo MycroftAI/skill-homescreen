@@ -11,6 +11,10 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+/*
+Defines the idle screen for the Mark II.
+*/
 import QtQuick 2.12
 import QtQuick.Controls 2.0
 import QtGraphicalEffects 1.0
@@ -20,8 +24,9 @@ Mycroft.CardDelegate {
     id: homeScreenRoot
     skillBackgroundColorOverlay: "transparent"
     cardBackgroundOverlayColor: "transparent"
-    skillBackgroundSource: Qt.resolvedUrl(sessionData.wallpaper_path + sessionData.selected_wallpaper)
+    skillBackgroundSource: Qt.resolvedUrl(sessionData.wallpaperPath)
 
+    // Icon representing the current weather conditionsre, freshed every fifteen minutes.
     HomeScreenImage {
         id: homeScreenWeatherCondition
         anchors.left: parent.left
@@ -32,6 +37,7 @@ Mycroft.CardDelegate {
         width: gridUnit * 3
     }
 
+    // The current temperature, refreshed every fifteen minutes.
     HomeScreenLabel {
         id: homeScreenTemperature
         anchors.top: parent.top
@@ -44,6 +50,7 @@ Mycroft.CardDelegate {
         width: gridUnit * 6
     }
 
+    // Alarm icon that is displayed when there are future alarms set on the device.
     HomeScreenImage {
         id: homeScreenActiveAlarm
         anchors.right: parent.right
@@ -54,6 +61,7 @@ Mycroft.CardDelegate {
         width: gridUnit * 3
     }
 
+    // The date of the most recent Mark II build.  Only displayed for developers.
     HomeScreenLabel {
         id: homeScreenBuildDate
         anchors.bottom: parent.bottom
@@ -66,6 +74,7 @@ Mycroft.CardDelegate {
         width: gridUnit * 10
     }
 
+    // Current time of day
     HomeScreenLabel {
         id: homeScreenTime
         anchors.top: parent.top
@@ -77,6 +86,7 @@ Mycroft.CardDelegate {
         width: parent.width
     }
 
+    // Current date
     HomeScreenLabel {
         id: homeScreenDate
         anchors.top: homeScreenTime.bottom
