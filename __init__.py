@@ -47,6 +47,7 @@ class HomescreenSkill(MycroftSkill):
         )
         self.display_time = None
         self.display_date = None
+        self.settings_change_callback = self._handle_settings_change
 
     @property
     def platform(self) -> Optional[str]:
@@ -60,6 +61,16 @@ class HomescreenSkill(MycroftSkill):
             platform = self.config_core["enclosure"].get("platform")
 
         return platform
+
+    def _handle_settings_change(self):
+        """Reacts to changes in the user settings for this skill."""
+        if self.gui.connected:
+            wallpaper_setting = self.settings.get("wallpaper", DEFAULT_WALLPAPER)
+            if wallpaper_setting != self.wallpaper.selected.name:
+                log_msg = "Changing home screen wallpaper to " + wallpaper_setting
+                self.log.info(log_msg)
+                self.wallpaper.change(wallpaper_setting)
+                self.gui["wallpaperPath"] = str(self.wallpaper.selected)
 
     def initialize(self):
         """Performs tasks after instantiation but before loading is complete."""
@@ -155,7 +166,7 @@ class HomescreenSkill(MycroftSkill):
         Each time this intent is executed the next item in the list of collected
         wallpapers will be displayed and the skill setting will be updated.
         """
-        self.wallpaper.change()
+        self.wallpaper.next()
         self.settings["wallpaper"] = self.wallpaper.selected.name
         self.gui["wallpaperPath"] = str(self.wallpaper.selected)
 
