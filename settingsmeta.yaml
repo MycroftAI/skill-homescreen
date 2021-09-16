@@ -5,4 +5,4 @@ skillMetadata:
           - name: wallpaper
             type: text
             label: Selected Wallpaper
-            value: "default.png"
+            value: "nasa.png"

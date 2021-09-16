@@ -17,6 +17,7 @@ import json
 import os
 import time
 import requests
+from datetime import datetime, timedelta
 from os import path
 from pathlib import Path
 
@@ -24,6 +25,13 @@ from mycroft.messagebus.message import Message
 from mycroft.skills import MycroftSkill, resting_screen_handler, intent_handler, intent_file_handler
 from mycroft.skills.skill_loader import load_skill_module
 from mycroft.skills.skill_manager import SkillManager
+from mycroft.util.format import nice_time, nice_date
+from mycroft.util.time import now_local
+
+FIFTEEN_MINUTES = 900
+MARK_II = "mycroft_mark_2"
+ONE_MINUTE = 60
+TEN_SECONDS = 10
 
 
 class MycroftHomescreen(MycroftSkill):
@@ -35,22 +43,38 @@ class MycroftHomescreen(MycroftSkill):
         self.notifications_storage_model = []
         self.def_wallpaper_folder = path.dirname(__file__) + '/ui/wallpapers/'
         self.loc_wallpaper_folder = self.file_system.path + '/wallpapers/'
-        self.selected_wallpaper = self.settings.get("wallpaper", "default.png")
+        self.selected_wallpaper = self.settings.get("wallpaper", "nasa.png")
         self.wallpaper_collection = []
+        self.display_time = None
+        self.display_date = None
+
+    @property
+    def platform(self):
+        """Get the platform identifier string
+
+        Returns:
+            str: Platform identifier, such as "mycroft_mark_1",
+                 "mycroft_picroft", "mycroft_mark_2".  None for non-standard.
+        """
+        if self.config_core and self.config_core.get("enclosure"):
+            return self.config_core["enclosure"].get("platform")
+        else:
+            return None
 
     def initialize(self):
-        now = datetime.datetime.now()
-        callback_time = datetime.datetime(
-            now.year, now.month, now.day, now.hour, now.minute
-        ) + datetime.timedelta(seconds=60)
-        self.schedule_repeating_event(self.update_dt, callback_time, 10)
         self.skill_manager = SkillManager(self.bus)
+        self._schedule_clock_update()
+        self._schedule_date_update()
+        self._schedule_weather_request()
+        self._query_active_alarms()
 
         # Handler Registeration For Notifications
-        self.add_event("homescreen.notification.set",
-                       self.handle_display_notification)
-        self.add_event("homescreen.wallpaper.set",
-                       self.handle_set_wallpaper)
+        self.add_event("homescreen.notification.set", self.handle_display_notification)
+        self.add_event("homescreen.wallpaper.set", self.handle_set_wallpaper)
+        self.add_event("skill.alarm.query-active.response", self.handle_alarm_status)
+        self.add_event("skill.alarm.scheduled", self.handle_alarm_status)
+        self.add_event("skill.weather.local-forecast-obtained",
+                       self.handle_local_forecast_response)
         self.gui.register_handler("homescreen.notification.set",
                                   self.handle_display_notification)
         self.gui.register_handler("homescreen.notification.pop.clear",
@@ -67,18 +91,46 @@ class MycroftHomescreen(MycroftSkill):
 
         self.collect_wallpapers()
 
-        # Import Date Time Skill As Date Time Provider
-        # TODO - replace with Skills API call in 21.02
-        root_dir = self.root_dir.rsplit("/", 1)[0]
-        try:
-            time_date_path = str(root_dir) + "/mycroft-date-time.mycroftai/__init__.py"
-            time_date_id = "datetimeskill"
-            datetimeskill = load_skill_module(time_date_path, time_date_id)
-            from datetimeskill import TimeSkill
+    def _schedule_clock_update(self):
+        """Check for a clock update every ten seconds; start on a minute boundary."""
+        clock_update_start_time = datetime.now().replace(second=0, microsecond=0)
+        clock_update_start_time += timedelta(minutes=1)
+        self.schedule_repeating_event(
+            self.update_clock, when=clock_update_start_time, frequency=TEN_SECONDS
+        )
 
-            self.dt_skill = TimeSkill()
-        except:
-            self.log.info("Failed To Import DateTime Skill")
+    def _schedule_date_update(self):
+        """Check for a date update every minute; start on a minute boundary."""
+        date_update_start_time = datetime.now().replace(second=0, microsecond=0)
+        date_update_start_time += timedelta(minutes=1)
+        self.schedule_repeating_event(
+            self.update_date, when=date_update_start_time, frequency=ONE_MINUTE
+        )
+
+    def _schedule_weather_request(self):
+        """Check for a weather update every fifteen minutes."""
+        self.schedule_repeating_event(
+            self.request_weather, when=datetime.now(), frequency=FIFTEEN_MINUTES
+        )
+
+    def request_weather(self):
+        """Emits a command over the message bus to get the local weather forecast."""
+        command = Message("skill.weather.request-local-forecast")
+        self.bus.emit(command)
+
+    def _query_active_alarms(self):
+        """Emits a command over the message bus query for active alarms."""
+        command = Message("skill.alarm.query-active")
+        self.bus.emit(command)
+
+    def handle_local_forecast_response(self, event: Message):
+        """Use the weather data from the event to populate the weather on the screen."""
+        self.gui["homeScreenTemperature"] = event.data["temperature"]
+        self.gui["homeScreenWeatherCondition"] = event.data["weather_condition"]
+
+    def handle_alarm_status(self, event: Message):
+        """Use the alarm data from the event to control visibility of the alarm icon."""
+        self.gui["showAlarmIcon"] = event.data["active_alarms"]
 
     #####################################################################
     # Homescreen Registeration & Handling
@@ -86,13 +138,9 @@ class MycroftHomescreen(MycroftSkill):
     @resting_screen_handler("Mycroft Homescreen")
     def handle_idle(self, _):
         self.log.debug('Activating Time/Date resting page')
-        self.gui['time_string'] = self.dt_skill.get_display_current_time()
-        self.gui['date_string'] = self.dt_skill.get_display_date()
-        self.gui['weekday_string'] = self.dt_skill.get_weekday()
-        self.gui['month_string'] = self.split_month_string(self.dt_skill.get_month_date())[1]
-        self.gui['day_string'] = self.split_month_string(self.dt_skill.get_month_date())[0]
-        self.gui['year_string'] = self.dt_skill.get_year()
-        self.gui['build_date'] = self.build_info.get('build_date', '')
+        self.update_clock()
+        self.update_date()
+        self.gui['buildDate'] = self.build_info.get('build_date', '')
         self.gui['wallpaper_path'] = self.check_wallpaper_path(self.selected_wallpaper)
         self.gui['selected_wallpaper'] = self.selected_wallpaper
         self.gui['notification'] = {}
@@ -100,34 +148,11 @@ class MycroftHomescreen(MycroftSkill):
             "storedmodel": self.notifications_storage_model,
             "count": len(self.notifications_storage_model),
         }
-        self.gui.show_page("idle.qml")
-
-    def handle_idle_update_time(self):
-        self.gui["time_string"] = self.dt_skill.get_display_current_time()
-        self.gui["date_string"] = self.dt_skill.get_display_date()
-        self.gui["weekday_string"] = self.dt_skill.get_weekday()
-        self.gui["month_string"] = self.split_month_string(self.dt_skill.get_month_date())[1]
-        self.gui['day_string'] = self.split_month_string(self.dt_skill.get_month_date())[0]
-        self.gui["year_string"] = self.dt_skill.get_year()
-
-    def update_dt(self):
-        self.gui["time_string"] = self.dt_skill.get_display_current_time()
-        self.gui["date_string"] = self.dt_skill.get_display_date()
-        self.gui["weekday_string"] = self.dt_skill.get_weekday()
-        self.gui["month_string"] = self.split_month_string(self.dt_skill.get_month_date())[1]
-        self.gui['day_string'] = self.split_month_string(self.dt_skill.get_month_date())[0]
-        self.gui["year_string"] = self.dt_skill.get_year()
-        
-    def split_month_string(self, varstring):
-        month_string = varstring.split(" ")
-        if self.config_core.get('date_format') == 'MDY':
-            day_string = month_string[1]
-            month_string = month_string[0]
+        if self.platform == MARK_II:
+            page = "mark_ii_idle.qml"
         else:
-            day_string = month_string[0]
-            month_string = month_string[1]
-
-        return [day_string, month_string]
+            page = "scalable_idle.qml"
+        self.gui.show_page(page)
 
     #####################################################################
     # Build Info
@@ -286,6 +311,42 @@ class MycroftHomescreen(MycroftSkill):
                     "storedmodel": self.notifications_storage_model,
                     "count": len(self.notifications_storage_model),
                 }
+
+    def update_date(self):
+        """Formats the datetime object returned from the parser for display purposes."""
+        formatted_date = nice_date(now_local())
+        if self.display_date != formatted_date:
+            self.display_date = formatted_date
+            self._set_gui_date()
+
+    def _set_gui_date(self):
+        """Uses the data from the date skill to build the date as seen on the screen."""
+        date_parts = self.display_date.split(", ")
+        day_of_week = date_parts[0].title()
+        month_day = date_parts[1].split()
+        month = month_day[0][:3].title()
+        day_of_month = now_local().strftime("%-d")
+        gui_date = [day_of_week]
+        if self.config_core.get("date_format") == "MDY":
+            gui_date.extend([month, day_of_month])
+        else:
+            gui_date.extend([day_of_month, month])
+
+        self.gui["homeScreenDate"] = " ".join(gui_date)
+
+    def update_clock(self):
+        """Broadcast the current local time in HH:MM format over the message bus.
+
+        Provides a single place that determines the current local time and broadcasts
+        it in the user-defined format (12 vs. 24 hour) for a clock implementation.
+        """
+        format_time_24_hour = self.config_core.get("time_format") == "full"
+        formatted_time = nice_time(
+            now_local(), speech=False, use_24hour=format_time_24_hour
+        )
+        if self.display_time != formatted_time:
+            self.display_time = formatted_time
+            self.gui["homeScreenTime"] = self.display_time
 
     def stop(self):
         pass
