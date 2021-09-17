@@ -83,7 +83,7 @@ class HomescreenSkill(MycroftSkill):
     def _add_event_handlers(self):
         """Defines the events this skill will listen for and their handlers."""
         self.add_event("homescreen.wallpaper.set", self.handle_set_wallpaper)
-        self.add_event("skill.alarm.active-queried", self.handle_alarm_status)
+        self.add_event("skill.alarm.query-active.response", self.handle_alarm_status)
         self.add_event("skill.alarm.scheduled", self.handle_alarm_status)
         self.add_event(
             "skill.weather.local-forecast-obtained", self.handle_local_forecast_response
