@@ -49,7 +49,19 @@ class Wallpaper:
         for wallpaper_path in self.user_directory.iterdir():
             self.collection.append(wallpaper_path)
 
-    def change(self):
+    def change(self, file_name: str):
+        """Change the wallpaper to use the image in a specified file.
+
+        Args:
+            file_name: the name of the wallpaper file
+        """
+        file_path = self._get_file_path(file_name)
+        if file_path in self.collection:
+            self.selected = file_path
+        else:
+            self.selected = self.default
+
+    def next(self):
         """Selects the next wallpaper in the collection for display.
 
         Starts over the beginning of the list after the last in the collection.  If
