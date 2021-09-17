@@ -71,7 +71,7 @@ class MycroftHomescreen(MycroftSkill):
         # Handler Registration For Notifications
         self.add_event("homescreen.notification.set", self.handle_display_notification)
         self.add_event("homescreen.wallpaper.set", self.handle_set_wallpaper)
-        self.add_event("skill.alarm.active-queried", self.handle_alarm_status)
+        self.add_event("skill.alarm.query-active.response", self.handle_alarm_status)
         self.add_event("skill.alarm.scheduled", self.handle_alarm_status)
         self.add_event("skill.weather.local-forecast-obtained",
                        self.handle_local_forecast_response)
