@@ -15,7 +15,9 @@
 from datetime import datetime
 from pathlib import Path
 
-DEFAULT_WALLPAPER = "nasa.png"
+import requests
+
+DEFAULT_WALLPAPER = "blackwater-river.png"
 
 
 class Wallpaper:
@@ -25,28 +27,28 @@ class Wallpaper:
         default: the default wallpaper as defined in the skill settings
         selected: the currently active (selected) wallpaper
         skill_directory: the wallpaper directory in the home screen skill
-        user_directory: a directory on the device for storing user-defined wallpapers
+        skill_data_directory: a directory on the device for storing user-defined wallpapers
     """
 
-    def __init__(self, skill_root_dir: str, skill_data_dir: str, default: str):
+    def __init__(self, skill_root_dir: str, skill_data_dir: str):
         self.skill_directory = Path(skill_root_dir).joinpath("ui/wallpapers")
-        self.user_directory = Path(skill_data_dir).joinpath("wallpapers")
+        self.skill_data_directory = Path(skill_data_dir).joinpath("wallpapers")
         self._ensure_user_directory_exists()
-        self.default = self._get_file_path(default)
+        self.default = self._get_file_path(DEFAULT_WALLPAPER)
         self.selected = self.default
         self.collection = []
         self.collect()
 
     def _ensure_user_directory_exists(self):
         """Ensures the directory for user-defined wallpapers exists."""
-        if not self.user_directory.exists():
-            self.user_directory.mkdir()
+        if not self.skill_data_directory.exists():
+            self.skill_data_directory.mkdir()
 
     def collect(self):
         """Builds a list of wallpapers provided by the skill and added by the user."""
         for wallpaper_path in self.skill_directory.iterdir():
             self.collection.append(wallpaper_path)
-        for wallpaper_path in self.user_directory.iterdir():
+        for wallpaper_path in self.skill_data_directory.iterdir():
             self.collection.append(wallpaper_path)
 
     def change(self, file_name: str):
@@ -77,19 +79,23 @@ class Wallpaper:
         else:
             self.selected = self.default
 
-    def add(self, image):
-        """Adds a new wallpaper to the collection and selects it for display."""
-        file_name = "wallpaper-" + datetime.now().strftime("%H%M%S") + ".jpg"
-        file_path = self.user_directory.joinpath(file_name)
+    def add(self, wallpaper_url: str):
+        """Adds a new wallpaper to the collection and selects it for display.
+
+        Args:
+            wallpaper_url: the url to download the wallpaper image from
+        """
+        response = requests.get(wallpaper_url)
+        file_path = self.skill_data_directory.joinpath("wallpaper.jpg")
         with open(file_path, "wb") as wallpaper_file:
-            wallpaper_file.write(image)
-        self.collection.append(file_path)
+            wallpaper_file.write(response.content)
+        self.collect()
         self.selected = file_path
 
     def _get_file_path(self, file_name: str):
         """Determines if a wallpaper file name is from the user or skill directory."""
         skill_path = self.skill_directory.joinpath(file_name)
-        user_path = self.user_directory.joinpath(file_name)
+        user_path = self.skill_data_directory.joinpath(file_name)
         if skill_path.exists():
             file_path = skill_path
         else:

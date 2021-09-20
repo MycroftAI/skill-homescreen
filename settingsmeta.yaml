@@ -1,8 +1,15 @@
 skillMetadata:
    sections:
-      - name: Display
+      - name: Wallpaper
         fields:
-          - name: wallpaper
+          - type: label
+            label: Change the background image on a device with a screen, such as a Mark II.  Select one of the included wallpapers or specify the URL for a custom image.
+          - name: wallpaper_file
+            type: select
+            label: Options
+            options: Blackwater River|blackwater-river.png;Blue|blue.png;Chukchi Sea|chukchi-sea.png;Earth Night|earth-night.png;Green|green.png;Moon|moon.png;Nebula|nebula.png;Orange|orange.png;Tokyo Night|tokyo-night.png';Other (using URL below)|url
+            value: blackwater-river.png
+          - name: wallpaper_url
             type: text
-            label: Selected Wallpaper
-            value: "nasa.png"
+            label: Custom Image URL
+            value: ""

@@ -13,7 +13,6 @@
 # limitations under the License.
 """Skill to display a home screen (a.k.a. idle screen) on a GUI enabled device."""
 import json
-import requests
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
@@ -41,12 +40,9 @@ class HomescreenSkill(MycroftSkill):
 
     def __init__(self):
         super().__init__(name="HomescreenSkill")
-        wallpaper_setting = self.settings.get("wallpaper", DEFAULT_WALLPAPER)
-        self.wallpaper = Wallpaper(
-            self.root_dir, self.file_system.path, wallpaper_setting
-        )
         self.display_time = None
         self.display_date = None
+        self.wallpaper = Wallpaper(self.root_dir, self.file_system.path)
         self.settings_change_callback = self._handle_settings_change
 
     @property
@@ -64,25 +60,37 @@ class HomescreenSkill(MycroftSkill):
 
     def _handle_settings_change(self):
         """Reacts to changes in the user settings for this skill."""
-        if self.gui.connected:
-            wallpaper_setting = self.settings.get("wallpaper", DEFAULT_WALLPAPER)
-            if wallpaper_setting != self.wallpaper.selected.name:
-                log_msg = "Changing home screen wallpaper to " + wallpaper_setting
-                self.log.info(log_msg)
-                self.wallpaper.change(wallpaper_setting)
-                self.gui["wallpaperPath"] = str(self.wallpaper.selected)
+        self._init_wallpaper()
+
+    def _set_wallpaper(self):
+        wallpaper_file = self.settings.get("wallpaper_file", DEFAULT_WALLPAPER)
+        wallpaper_url = self.settings.get("wallpaper_url", "")
+        if wallpaper_file == "url":
+            self.wallpaper.add(wallpaper_url)
+            self.wallpaper.selected = wallpaper_url
+        elif wallpaper_file != self.wallpaper.selected.name:
+            self.wallpaper.change(wallpaper_file)
+
+        self.gui["wallpaperPath"] = str(self.wallpaper.selected)
+        log_msg = "Changed home screen wallpaper to "
+        log_msg += wallpaper_url if wallpaper_file == "url" else wallpaper_file
+        self.log.info(log_msg)
 
     def initialize(self):
         """Performs tasks after instantiation but before loading is complete."""
+        self._init_wallpaper()
         self._add_event_handlers()
         self._schedule_clock_update()
         self._schedule_date_update()
         self._schedule_weather_request()
         self._query_active_alarms()
 
+    def _init_wallpaper(self):
+        if self.gui.connected:
+            self._set_wallpaper()
+
     def _add_event_handlers(self):
         """Defines the events this skill will listen for and their handlers."""
-        self.add_event("homescreen.wallpaper.set", self.handle_set_wallpaper)
         self.add_event("skill.alarm.query-active.response", self.handle_alarm_status)
         self.add_event("skill.alarm.scheduled", self.handle_alarm_status)
         self.add_event(
@@ -137,7 +145,6 @@ class HomescreenSkill(MycroftSkill):
         self.update_clock()
         self.update_date()
         self.set_build_date()
-        self.gui["wallpaperPath"] = str(self.wallpaper.selected)
         if self.platform == MARK_II:
             page = "mark_ii_idle.qml"
         else:
@@ -169,21 +176,6 @@ class HomescreenSkill(MycroftSkill):
         self.wallpaper.next()
         self.settings["wallpaper"] = self.wallpaper.selected.name
         self.gui["wallpaperPath"] = str(self.wallpaper.selected)
-
-    def handle_set_wallpaper(self, command: Message):
-        """Handles a command received over the message bus to add a new wallpaper.
-
-        Not sure where this command would be issued or where the URL comes from.
-
-        Args:
-            command: The command send over the message bus.
-        """
-        image_url = command.data.get("url", "")
-        if image_url:
-            response = requests.get(image_url)
-            self.wallpaper.add(response.content)
-            self.settings["wallpaper"] = self.wallpaper.selected
-            self.gui["wallpaperPath"] = str(self.wallpaper.selected)
 
     def update_date(self):
         """Formats the datetime object returned from the parser for display purposes."""
