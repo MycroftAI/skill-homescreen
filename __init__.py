@@ -67,7 +67,6 @@ class HomescreenSkill(MycroftSkill):
         wallpaper_url = self.settings.get("wallpaper_url", "")
         if wallpaper_file == "url":
             self.wallpaper.add(wallpaper_url)
-            self.wallpaper.selected = wallpaper_url
         elif wallpaper_file != self.wallpaper.selected.name:
             self.wallpaper.change(wallpaper_file)
 
