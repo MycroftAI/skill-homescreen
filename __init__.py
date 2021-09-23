@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Optional
 
 from mycroft.messagebus.message import Message
-from mycroft.skills import MycroftSkill, resting_screen_handler, intent_file_handler
+from mycroft.skills import intent_handler, MycroftSkill, resting_screen_handler
 from mycroft.util.format import nice_time, nice_date
 from mycroft.util.time import now_local
 from .skill import DEFAULT_WALLPAPER, Wallpaper
@@ -166,7 +166,7 @@ class HomescreenSkill(MycroftSkill):
 
         self.gui["buildDate"] = build_date
 
-    @intent_file_handler("change.wallpaper.intent")
+    @intent_handler("change.wallpaper.intent")
     def change_wallpaper(self, _):
         """Handles a user's request to change the wallpaper.
 

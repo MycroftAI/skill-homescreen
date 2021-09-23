@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Wallpaper management for the home screen."""
-from datetime import datetime
 from pathlib import Path
 
 import requests
@@ -58,7 +57,7 @@ class Wallpaper:
             file_name: the name of the wallpaper file
         """
         file_path = self._get_file_path(file_name)
-        if file_path in self.collection:
+        if file_path is not None and file_path in self.collection:
             self.selected = file_path
         else:
             self.selected = self.default
@@ -86,7 +85,7 @@ class Wallpaper:
             wallpaper_url: the url to download the wallpaper image from
         """
         response = requests.get(wallpaper_url)
-        file_path = self.skill_data_directory.joinpath("wallpaper.jpg")
+        file_path = self.skill_data_directory.joinpath("custom-wallpaper.jpg")
         with open(file_path, "wb") as wallpaper_file:
             wallpaper_file.write(response.content)
         self.collect()
@@ -95,10 +94,12 @@ class Wallpaper:
     def _get_file_path(self, file_name: str):
         """Determines if a wallpaper file name is from the user or skill directory."""
         skill_path = self.skill_directory.joinpath(file_name)
-        user_path = self.skill_data_directory.joinpath(file_name)
+        skill_data_path = self.skill_data_directory.joinpath(file_name)
         if skill_path.exists():
             file_path = skill_path
+        elif skill_data_path.exists():
+            file_path = skill_data_path
         else:
-            file_path = user_path
+            file_path = None
 
         return file_path
