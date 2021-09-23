@@ -77,6 +77,7 @@ class HomescreenSkill(MycroftSkill):
 
     def initialize(self):
         """Performs tasks after instantiation but before loading is complete."""
+        self.gui["showAlarmIcon"] = False
         self._init_wallpaper()
         self._add_event_handlers()
         self._schedule_clock_update()
@@ -175,6 +176,7 @@ class HomescreenSkill(MycroftSkill):
         self.wallpaper.next()
         self.settings["wallpaper"] = self.wallpaper.selected.name
         self.gui["wallpaperPath"] = str(self.wallpaper.selected)
+        self.bus.emit(Message("homescreen.wallpaper.changed"))
 
     def update_date(self):
         """Formats the datetime object returned from the parser for display purposes."""
