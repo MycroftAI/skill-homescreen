@@ -18,7 +18,7 @@ in the skill settings.
 * Mycroft AI
 
 ## Supported Devices 
-Mark II 
+platform_mark2
 
 ## Category
 **Configuration**
