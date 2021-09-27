@@ -20,81 +20,96 @@ import QtQuick.Controls 2.0
 import QtGraphicalEffects 1.0
 import Mycroft 1.0 as Mycroft
 
-Mycroft.CardDelegate {
+Mycroft.Delegate {
     id: homeScreenRoot
-    skillBackgroundColorOverlay: "transparent"
-    cardBackgroundOverlayColor: "transparent"
-    skillBackgroundSource: Qt.resolvedUrl(sessionData.wallpaperPath)
+    leftPadding: 0
+    rightPadding: 0
+    bottomPadding: 0
+    topPadding: 0
+    property int gridUnit: Mycroft.Units.gridUnit
 
-    // Icon representing the current weather conditionsre, freshed every fifteen minutes.
-    HomeScreenImage {
-        id: homeScreenWeatherCondition
-        anchors.left: parent.left
-        anchors.leftMargin: gridUnit * 18
-        anchors.top: parent.top
-        heightUnits: 3
-        imageSource: sessionData.homeScreenWeatherCondition
-        width: gridUnit * 3
+    Image {
+        id: homeScreenWallpaper
+        anchors.fill: parent
+        source: Qt.resolvedUrl(sessionData.wallpaperPath)
     }
 
-    // The current temperature, refreshed every fifteen minutes.
-    HomeScreenLabel {
-        id: homeScreenTemperature
-        anchors.top: parent.top
-        anchors.left: homeScreenWeatherCondition.right
-        anchors.leftMargin: gridUnit
-        fontSize: 59
-        fontStyle: "Regular"
-        heightUnits: 3
-        text: sessionData.homeScreenTemperature + "°"
-        width: gridUnit * 6
-    }
+    Item {
+        x: gridUnit * 2
+        y: gridUnit * 2
+        height: gridUnit * 26
+        width: gridUnit * 46
 
-    // Alarm icon that is displayed when there are future alarms set on the device.
-    HomeScreenImage {
-        id: homeScreenActiveAlarm
-        anchors.right: parent.right
-        anchors.top: parent.top
-        heightUnits: 3
-        imageSource: "icons/alarm.svg"
-        visible: sessionData.showAlarmIcon
-        width: gridUnit * 3
-    }
+        // Icon representing the current weather conditionsre, freshed every fifteen minutes.
+        HomeScreenImage {
+            id: homeScreenWeatherCondition
+            anchors.left: parent.left
+            anchors.leftMargin: gridUnit * 18
+            anchors.top: parent.top
+            heightUnits: 3
+            imageSource: sessionData.homeScreenWeatherCondition
+            width: gridUnit * 3
+        }
 
-    // The date of the most recent Mark II build.  Only displayed for developers.
-    HomeScreenLabel {
-        id: homeScreenBuildDate
-        anchors.bottom: parent.bottom
-        anchors.left: parent.left
-        anchors.leftMargin: gridUnit * 5
-        fontSize: 22
-        fontStyle: "Regular"
-        heightUnits: 3
-        text: sessionData.buildDate
-        width: gridUnit * 10
-    }
+        // The current temperature, refreshed every fifteen minutes.
+        HomeScreenLabel {
+            id: homeScreenTemperature
+            anchors.top: parent.top
+            anchors.left: homeScreenWeatherCondition.right
+            anchors.leftMargin: gridUnit
+            fontSize: 59
+            fontStyle: "Regular"
+            heightUnits: 3
+            text: sessionData.homeScreenTemperature + "°"
+            width: gridUnit * 6
+        }
 
-    // Current time of day
-    HomeScreenLabel {
-        id: homeScreenTime
-        anchors.top: parent.top
-        anchors.topMargin: gridUnit * 6
-        fontSize: 200
-        fontStyle: "Bold"
-        heightUnits: 10
-        text: sessionData.homeScreenTime.replace(":", "꞉")
-        width: parent.width
-    }
+        // Alarm icon that is displayed when there are future alarms set on the device.
+        HomeScreenImage {
+            id: homeScreenActiveAlarm
+            anchors.right: parent.right
+            anchors.top: parent.top
+            heightUnits: 3
+            imageSource: "icons/alarm.svg"
+            visible: sessionData.showAlarmIcon
+            width: gridUnit * 3
+        }
 
-    // Current date
-    HomeScreenLabel {
-        id: homeScreenDate
-        anchors.top: homeScreenTime.bottom
-        anchors.topMargin: gridUnit * 3
-        fontSize: 59
-        fontStyle: "Regular"
-        heightUnits: 3
-        text: sessionData.homeScreenDate
-        width: parent.width
+        // The date of the most recent Mark II build.  Only displayed for developers.
+        HomeScreenLabel {
+            id: homeScreenBuildDate
+            anchors.bottom: parent.bottom
+            anchors.left: parent.left
+            anchors.leftMargin: gridUnit * 5
+            fontSize: 22
+            fontStyle: "Regular"
+            heightUnits: 3
+            text: sessionData.buildDate
+            width: gridUnit * 10
+        }
+
+        // Current time of day
+        HomeScreenLabel {
+            id: homeScreenTime
+            anchors.top: parent.top
+            anchors.topMargin: gridUnit * 6
+            fontSize: 200
+            fontStyle: "Bold"
+            heightUnits: 10
+            text: sessionData.homeScreenTime.replace(":", "꞉")
+            width: parent.width
+        }
+
+        // Current date
+        HomeScreenLabel {
+            id: homeScreenDate
+            anchors.top: homeScreenTime.bottom
+            anchors.topMargin: gridUnit * 3
+            fontSize: 59
+            fontStyle: "Regular"
+            heightUnits: 3
+            text: sessionData.homeScreenDate
+            width: parent.width
+        }
     }
 }
