@@ -110,6 +110,10 @@ class HomescreenSkill(MycroftSkill):
                 self.gui["wallpaperPath"] = None
             else:
                 self.gui["wallpaperPath"] = str(self.wallpaper.selected)
+                self.log.info(
+                    "Home screen wallpaper changed to "
+                    + str(self.wallpaper.selected.name)
+                )
 
     def _schedule_clock_update(self):
         """Check for a clock update every ten seconds; start on a minute boundary."""
@@ -134,8 +138,11 @@ class HomescreenSkill(MycroftSkill):
         self.add_event(
             "skill.weather.local-forecast-obtained", self.handle_local_forecast_response
         )
-        self.add_event('mycroft.skills.initialized', self.schedule_weather_request)
-        self.add_event('mycroft.skills.initialized', self.query_active_alarms)
+
+        # There is no guarantee of skill loading order, so wait until all skills are
+        # loaded before querying other skills.
+        self.add_event("mycroft.skills.initialized", self.schedule_weather_request)
+        self.add_event("mycroft.skills.initialized", self.query_active_alarms)
 
     def schedule_weather_request(self):
         """Check for a weather update every fifteen minutes."""
@@ -168,14 +175,10 @@ class HomescreenSkill(MycroftSkill):
         self.log.debug("Displaying the idle screen.")
         self.update_clock()
         self.update_date()
-        self.set_build_date()
-        if self.platform == MARK_II:
-            page = "mark_ii_idle.qml"
-        else:
-            page = "scalable_idle.qml"
-        self.gui.show_page(page)
+        self._set_build_date()
+        self._show_page()
 
-    def set_build_date(self):
+    def _set_build_date(self):
         """Sets the build date on the screen from a file, if it exists.
 
         The build date won't change without a reboot.  This only needs to occur once.
@@ -190,6 +193,14 @@ class HomescreenSkill(MycroftSkill):
 
         self.gui["buildDate"] = build_date
 
+    def _show_page(self):
+        """Show the appropriate home screen based on the device platform."""
+        if self.platform == MARK_II:
+            page = "mark_ii_idle.qml"
+        else:
+            page = "scalable_idle.qml"
+        self.gui.show_page(page)
+
     @intent_handler("change.wallpaper.intent")
     def change_wallpaper(self, _):
         """Handles a user's request to change the wallpaper.
@@ -201,6 +212,9 @@ class HomescreenSkill(MycroftSkill):
         self.settings["wallpaper_file"] = self.wallpaper.file_name_setting
         self.gui["wallpaperPath"] = str(self.wallpaper.selected)
         self.bus.emit(Message("homescreen.wallpaper.changed"))
+        self.log.info(
+            "Home screen wallpaper changed to " + str(self.wallpaper.selected.name)
+        )
 
     def update_date(self):
         """Formats the datetime object returned from the parser for display purposes."""

@@ -80,8 +80,6 @@ class Wallpaper:
             if not self.selected.exists():
                 raise WallpaperError("file name in skill settings does not exist.")
 
-        LOG.info("Home screen wallpaper changed to " + str(self.selected.name))
-
     def next(self):
         """Selects the next wallpaper in the collection for display.
 
