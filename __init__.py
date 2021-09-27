@@ -96,7 +96,7 @@ class HomescreenSkill(MycroftSkill):
         self._query_active_alarms()
 
     def _init_wallpaper(self):
-        """When the skill loads, determine the wallpaper to display/"""
+        """When the skill loads, determine the wallpaper to display"""
         if self.gui.connected:
             self.wallpaper.file_name_setting = self.settings.get("wallpaper_file")
             self.wallpaper.url_setting = self.settings.get("wallpaper_url")
