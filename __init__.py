@@ -21,7 +21,7 @@ from mycroft.messagebus.message import Message
 from mycroft.skills import intent_handler, MycroftSkill, resting_screen_handler
 from mycroft.util.format import nice_time, nice_date
 from mycroft.util.time import now_local
-from .skill import DEFAULT_WALLPAPER, Wallpaper
+from .skill import Wallpaper, WallpaperError
 
 FIFTEEN_MINUTES = 900
 MARK_II = "mycroft_mark_2"
@@ -60,20 +60,30 @@ class HomescreenSkill(MycroftSkill):
 
     def _handle_settings_change(self):
         """Reacts to changes in the user settings for this skill."""
-        self._init_wallpaper()
+        new_wallpaper_settings = self._check_for_wallpaper_setting_change()
+        if self.gui.connected and new_wallpaper_settings:
+            try:
+                self.wallpaper.file_name_setting = self.settings.get("wallpaper_file")
+                self.wallpaper.url_setting = self.settings.get("wallpaper_url")
+                self.wallpaper.change()
+            except WallpaperError:
+                self.log.exception("An error occurred setting the wallpaper.")
+                self.speak("wallpaper-error")
+                self.gui["wallpaperPath"] = None
+            else:
+                self.gui["wallpaperPath"] = str(self.wallpaper.selected)
+                self.bus.emit(Message("homescreen.wallpaper.changed"))
 
-    def _set_wallpaper(self):
-        wallpaper_file = self.settings.get("wallpaper_file", DEFAULT_WALLPAPER)
-        wallpaper_url = self.settings.get("wallpaper_url", "")
-        if wallpaper_file == "url":
-            self.wallpaper.add(wallpaper_url)
-        elif wallpaper_file != self.wallpaper.selected.name:
-            self.wallpaper.change(wallpaper_file)
+    def _check_for_wallpaper_setting_change(self):
+        """Determine if the new settings are related to the wallpaper."""
+        file_name_setting = self.settings.get("wallpaper_file")
+        url_setting = self.settings.get("wallpaper_url")
+        change_wallpaper = (
+            file_name_setting != self.wallpaper.file_name_setting
+            or url_setting != self.wallpaper.url_setting
+        )
 
-        self.gui["wallpaperPath"] = str(self.wallpaper.selected)
-        log_msg = "Changed home screen wallpaper to "
-        log_msg += wallpaper_url if wallpaper_file == "url" else wallpaper_file
-        self.log.info(log_msg)
+        return change_wallpaper
 
     def initialize(self):
         """Performs tasks after instantiation but before loading is complete."""
@@ -86,8 +96,17 @@ class HomescreenSkill(MycroftSkill):
         self._query_active_alarms()
 
     def _init_wallpaper(self):
+        """When the skill loads, determine the wallpaper to display/"""
         if self.gui.connected:
-            self._set_wallpaper()
+            self.wallpaper.file_name_setting = self.settings.get("wallpaper_file")
+            self.wallpaper.url_setting = self.settings.get("wallpaper_url")
+            try:
+                self.wallpaper.set()
+            except WallpaperError:
+                self.log.exception("An error occurred setting the wallpaper.")
+                self.gui["wallpaperPath"] = None
+            else:
+                self.gui["wallpaperPath"] = str(self.wallpaper.selected)
 
     def _add_event_handlers(self):
         """Defines the events this skill will listen for and their handlers."""
@@ -174,7 +193,7 @@ class HomescreenSkill(MycroftSkill):
         wallpapers will be displayed and the skill setting will be updated.
         """
         self.wallpaper.next()
-        self.settings["wallpaper"] = self.wallpaper.selected.name
+        self.settings["wallpaper_file"] = self.wallpaper.file_name_setting
         self.gui["wallpaperPath"] = str(self.wallpaper.selected)
         self.bus.emit(Message("homescreen.wallpaper.changed"))
 
