@@ -60,7 +60,7 @@ Mycroft.Delegate {
             fontSize: 59
             fontStyle: "Regular"
             heightUnits: 3
-            text: sessionData.homeScreenTemperature + "°"
+            text: sessionData.homeScreenTemperature ? sessionData.homeScreenTemperature + "°" : ""
             width: gridUnit * 6
         }
 

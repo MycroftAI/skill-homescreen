@@ -87,13 +87,16 @@ class HomescreenSkill(MycroftSkill):
 
     def initialize(self):
         """Performs tasks after instantiation but before loading is complete."""
-        self.gui["showAlarmIcon"] = False
+        self._init_gui_attributes()
         self._init_wallpaper()
-        self._add_event_handlers()
         self._schedule_clock_update()
         self._schedule_date_update()
-        self._schedule_weather_request()
-        self._query_active_alarms()
+        self._add_event_handlers()
+
+    def _init_gui_attributes(self):
+        self.gui["showAlarmIcon"] = False
+        self.gui["homeScreenTemperature"] = None
+        self.gui["homeScreenWeatherCondition"] = None
 
     def _init_wallpaper(self):
         """When the skill loads, determine the wallpaper to display"""
@@ -107,14 +110,6 @@ class HomescreenSkill(MycroftSkill):
                 self.gui["wallpaperPath"] = None
             else:
                 self.gui["wallpaperPath"] = str(self.wallpaper.selected)
-
-    def _add_event_handlers(self):
-        """Defines the events this skill will listen for and their handlers."""
-        self.add_event("skill.alarm.query-active.response", self.handle_alarm_status)
-        self.add_event("skill.alarm.scheduled", self.handle_alarm_status)
-        self.add_event(
-            "skill.weather.local-forecast-obtained", self.handle_local_forecast_response
-        )
 
     def _schedule_clock_update(self):
         """Check for a clock update every ten seconds; start on a minute boundary."""
@@ -132,7 +127,17 @@ class HomescreenSkill(MycroftSkill):
             self.update_date, when=date_update_start_time, frequency=ONE_MINUTE
         )
 
-    def _schedule_weather_request(self):
+    def _add_event_handlers(self):
+        """Defines the events this skill will listen for and their handlers."""
+        self.add_event("skill.alarm.query-active.response", self.handle_alarm_status)
+        self.add_event("skill.alarm.scheduled", self.handle_alarm_status)
+        self.add_event(
+            "skill.weather.local-forecast-obtained", self.handle_local_forecast_response
+        )
+        self.add_event('mycroft.skills.initialized', self.schedule_weather_request)
+        self.add_event('mycroft.skills.initialized', self.query_active_alarms)
+
+    def schedule_weather_request(self):
         """Check for a weather update every fifteen minutes."""
         self.schedule_repeating_event(
             self.request_weather, when=datetime.now(), frequency=FIFTEEN_MINUTES
@@ -143,7 +148,7 @@ class HomescreenSkill(MycroftSkill):
         command = Message("skill.weather.request-local-forecast")
         self.bus.emit(command)
 
-    def _query_active_alarms(self):
+    def query_active_alarms(self):
         """Emits a command over the message bus query for active alarms."""
         command = Message("skill.alarm.query-active")
         self.bus.emit(command)
