@@ -1,12 +1,14 @@
 # <img src='https://raw.githack.com/FortAwesome/Font-Awesome/master/svgs/solid/home.svg' card_color='#22A7F0' width='50' height='50' style='vertical-align:bottom'/> Homescreen
-A configurable homescreen
+A configurable home screen.
 
 ## About
-Homescreen provides a default display for Mycroft devices with a rich display such as the Mark II.
+Provides a feature rich idle display for Mycroft devices with a screen, such as the Mark II.
 
-By default, the current time and date will be shown. Additional widgets can be activated to display other content such as the current weather.
+By default, the weather, current time and current date will be shown. An alarm icon will
+be shown in the upper right-hand corner if any alarms are set.
 
-The wallpaper may be changed randomly or a custom image can be defined in the Skill settings.
+The wallpaper may be changed randomly via voice command or a custom image can be defined 
+in the skill settings.
 
 ## Examples
 * "Change the wallpaper"
@@ -16,7 +18,7 @@ The wallpaper may be changed randomly or a custom image can be defined in the Sk
 * Mycroft AI
 
 ## Supported Devices 
-platform_mark2 
+platform_mark2
 
 ## Category
 **Configuration**

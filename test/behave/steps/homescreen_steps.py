@@ -12,29 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import time
+"""Step functions for the Home Screen Skill behave tests."""
+from behave import then
 
-from behave import given, then
+from test.integrationtests.voight_kampff import VoightKampffEventMatcher
 
-from mycroft.messagebus import Message
-from test.integrationtests.voight_kampff import emit_utterance, mycroft_responses, then_wait
-
-
-def wait_for_message(context, message_type):
-    """Common method for detecting Skill specific notify messages"""
-    msg_type = 'skill.homescreen.notify.{}'.format(message_type)
-    def check_for_msg(message):
-        return (message.msg_type == msg_type, '')
-
-    passed, debug = then_wait(msg_type, check_for_msg, context)
-
-    if not passed:
-        debug += mycroft_responses(context)
-    if not debug:
-        debug = "Mycroft didn't emit {} message".format(message_type)
-
-    assert passed, debug
 
 @then('the wallpaper should be changed')
-def then_wallpaper_changed(context):
-    wait_for_message(context, 'wallpaper_changed')
+def check_wallpaper_changed(context):
+    """When the wallpaper changes, an event is emitted on the bus."""
+    event_matcher = VoightKampffEventMatcher("homescreen.wallpaper.changed", context)
+    event_matcher.match()
+    assert event_matcher.match_found, event_matcher.error_message

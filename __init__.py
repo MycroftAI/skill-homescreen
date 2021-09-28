@@ -11,22 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-import datetime
+"""Skill to display a home screen (a.k.a. idle screen) on a GUI enabled device."""
 import json
-import os
-import time
-import requests
 from datetime import datetime, timedelta
-from os import path
 from pathlib import Path
+from typing import Optional
 
 from mycroft.messagebus.message import Message
-from mycroft.skills import MycroftSkill, resting_screen_handler, intent_handler, intent_file_handler
-from mycroft.skills.skill_loader import load_skill_module
-from mycroft.skills.skill_manager import SkillManager
+from mycroft.skills import intent_handler, MycroftSkill, resting_screen_handler
 from mycroft.util.format import nice_time, nice_date
 from mycroft.util.time import now_local
+from .skill import Wallpaper, WallpaperError
 
 FIFTEEN_MINUTES = 900
 MARK_II = "mycroft_mark_2"
@@ -34,49 +29,91 @@ ONE_MINUTE = 60
 TEN_SECONDS = 10
 
 
-class MycroftHomescreen(MycroftSkill):
-    # The constructor of the skill, which calls MycroftSkill's constructor
+class HomescreenSkill(MycroftSkill):
+    """Skill to display a home screen (a.k.a. idle screen) on a GUI enabled device.
+
+    Attributes:
+        display_date: the date string currently being displayed on the screen
+        display_time: the time string currently being displayed on the screen
+        wallpaper: An instance of the class for managing wallpapers.
+    """
+
     def __init__(self):
-        super(MycroftHomescreen, self).__init__(name="MycroftHomescreen")
-        self.skill_manager = None
-        self.def_wallpaper_folder = path.dirname(__file__) + '/ui/wallpapers/'
-        self.loc_wallpaper_folder = self.file_system.path + '/wallpapers/'
-        self.selected_wallpaper = self.settings.get("wallpaper", "nasa.png")
-        self.wallpaper_collection = []
+        super().__init__(name="HomescreenSkill")
         self.display_time = None
         self.display_date = None
+        self.wallpaper = Wallpaper(self.root_dir, self.file_system.path)
+        self.settings_change_callback = self._handle_settings_change
 
     @property
-    def platform(self):
-        """Get the platform identifier string
+    def platform(self) -> Optional[str]:
+        """The platform from the device configuration (e.g. "mycroft_mark_1")
 
         Returns:
-            str: Platform identifier, such as "mycroft_mark_1",
-                 "mycroft_picroft", "mycroft_mark_2".  None for non-standard.
+            Platform identifier if one is defined, otherwise None.
         """
+        platform = None
         if self.config_core and self.config_core.get("enclosure"):
-            return self.config_core["enclosure"].get("platform")
-        else:
-            return None
+            platform = self.config_core["enclosure"].get("platform")
+
+        return platform
+
+    def _handle_settings_change(self):
+        """Reacts to changes in the user settings for this skill."""
+        new_wallpaper_settings = self._check_for_wallpaper_setting_change()
+        if self.gui.connected and new_wallpaper_settings:
+            try:
+                self.wallpaper.file_name_setting = self.settings.get("wallpaper_file")
+                self.wallpaper.url_setting = self.settings.get("wallpaper_url")
+                self.wallpaper.change()
+            except WallpaperError:
+                self.log.exception("An error occurred setting the wallpaper.")
+                self.speak("wallpaper-error")
+                self.gui["wallpaperPath"] = None
+            else:
+                self.gui["wallpaperPath"] = str(self.wallpaper.selected)
+                self.bus.emit(Message("homescreen.wallpaper.changed"))
+
+    def _check_for_wallpaper_setting_change(self):
+        """Determine if the new settings are related to the wallpaper."""
+        file_name_setting = self.settings.get("wallpaper_file")
+        url_setting = self.settings.get("wallpaper_url")
+        change_wallpaper = (
+            file_name_setting != self.wallpaper.file_name_setting
+            or url_setting != self.wallpaper.url_setting
+        )
+
+        return change_wallpaper
 
     def initialize(self):
-        self.skill_manager = SkillManager(self.bus)
+        """Performs tasks after instantiation but before loading is complete."""
+        self._init_gui_attributes()
+        self._init_wallpaper()
         self._schedule_clock_update()
         self._schedule_date_update()
-        self._schedule_weather_request()
-        self._query_active_alarms()
+        self._add_event_handlers()
 
-        # Handler Registration For Notifications
-        self.add_event("homescreen.wallpaper.set", self.handle_set_wallpaper)
-        self.add_event("skill.alarm.query-active.response", self.handle_alarm_status)
-        self.add_event("skill.alarm.scheduled", self.handle_alarm_status)
-        self.add_event("skill.weather.local-forecast-obtained",
-                       self.handle_local_forecast_response)
+    def _init_gui_attributes(self):
+        self.gui["showAlarmIcon"] = False
+        self.gui["homeScreenTemperature"] = None
+        self.gui["homeScreenWeatherCondition"] = None
 
-        if not self.file_system.exists("wallpapers"):
-            os.mkdir(path.join(self.file_system.path, "wallpapers"))
-
-        self.collect_wallpapers()
+    def _init_wallpaper(self):
+        """When the skill loads, determine the wallpaper to display"""
+        if self.gui.connected:
+            self.wallpaper.file_name_setting = self.settings.get("wallpaper_file")
+            self.wallpaper.url_setting = self.settings.get("wallpaper_url")
+            try:
+                self.wallpaper.set()
+            except WallpaperError:
+                self.log.exception("An error occurred setting the wallpaper.")
+                self.gui["wallpaperPath"] = None
+            else:
+                self.gui["wallpaperPath"] = str(self.wallpaper.selected)
+                self.log.info(
+                    "Home screen wallpaper changed to "
+                    + str(self.wallpaper.selected.name)
+                )
 
     def _schedule_clock_update(self):
         """Check for a clock update every ten seconds; start on a minute boundary."""
@@ -94,7 +131,20 @@ class MycroftHomescreen(MycroftSkill):
             self.update_date, when=date_update_start_time, frequency=ONE_MINUTE
         )
 
-    def _schedule_weather_request(self):
+    def _add_event_handlers(self):
+        """Defines the events this skill will listen for and their handlers."""
+        self.add_event("skill.alarm.query-active.response", self.handle_alarm_status)
+        self.add_event("skill.alarm.scheduled", self.handle_alarm_status)
+        self.add_event(
+            "skill.weather.local-forecast-obtained", self.handle_local_forecast_response
+        )
+
+        # There is no guarantee of skill loading order, so wait until all skills are
+        # loaded before querying other skills.
+        self.add_event("mycroft.skills.initialized", self.schedule_weather_request)
+        self.add_event("mycroft.skills.initialized", self.query_active_alarms)
+
+    def schedule_weather_request(self):
         """Check for a weather update every fifteen minutes."""
         self.schedule_repeating_event(
             self.request_weather, when=datetime.now(), frequency=FIFTEEN_MINUTES
@@ -105,7 +155,7 @@ class MycroftHomescreen(MycroftSkill):
         command = Message("skill.weather.request-local-forecast")
         self.bus.emit(command)
 
-    def _query_active_alarms(self):
+    def query_active_alarms(self):
         """Emits a command over the message bus query for active alarms."""
         command = Message("skill.alarm.query-active")
         self.bus.emit(command)
@@ -119,101 +169,52 @@ class MycroftHomescreen(MycroftSkill):
         """Use the alarm data from the event to control visibility of the alarm icon."""
         self.gui["showAlarmIcon"] = event.data["active_alarms"]
 
-    #####################################################################
-    # Homescreen Registeration & Handling
-
     @resting_screen_handler("Mycroft Homescreen")
-    def handle_idle(self, _):
-        self.log.debug('Activating Time/Date resting page')
+    def handle_show_resting_screen(self, _):
+        """Populates and shows the resting screen."""
+        self.log.debug("Displaying the idle screen.")
         self.update_clock()
         self.update_date()
-        self.gui['buildDate'] = self.build_info.get('build_date', '')
-        self.gui['wallpaper_path'] = self.check_wallpaper_path(self.selected_wallpaper)
-        self.gui['selected_wallpaper'] = self.selected_wallpaper
+        self._set_build_date()
+        self._show_page()
+
+    def _set_build_date(self):
+        """Sets the build date on the screen from a file, if it exists.
+
+        The build date won't change without a reboot.  This only needs to occur once.
+        """
+        build_date = ""
+        build_info_path = Path("/etc/mycroft/build-info.json")
+        is_development_device = self.config_core["enclosure"].get("development_device")
+        if is_development_device and build_info_path.is_file():
+            with open(build_info_path) as build_info_file:
+                build_info = json.loads(build_info_file.read())
+                build_date = build_info.get("build_date", "")
+
+        self.gui["buildDate"] = build_date
+
+    def _show_page(self):
+        """Show the appropriate home screen based on the device platform."""
         if self.platform == MARK_II:
             page = "mark_ii_idle.qml"
         else:
             page = "scalable_idle.qml"
         self.gui.show_page(page)
 
-    #####################################################################
-    # Build Info
+    @intent_handler("change.wallpaper.intent")
+    def change_wallpaper(self, _):
+        """Handles a user's request to change the wallpaper.
 
-    @property
-    def build_info(self):
-        """The /etc/mycroft/build-info.json file as a Dict."""
-        data = {}
-        filename = "/etc/mycroft/build-info.json"
-        if (
-            self.config_core["enclosure"].get("development_device")
-            and Path(filename).is_file()
-        ):
-            with open(filename, "r") as build_info:
-                data = json.loads(build_info.read())
-        return data
-
-    #####################################################################
-    # Wallpaper Manager
-
-    def collect_wallpapers(self):
-        for dirname, dirnames, filenames in os.walk(self.def_wallpaper_folder):
-            def_wallpaper_collection = filenames
-
-        for dirname, dirnames, filenames in os.walk(self.loc_wallpaper_folder):
-            loc_wallpaper_collection = filenames
-
-        self.wallpaper_collection = def_wallpaper_collection + loc_wallpaper_collection
-
-    @intent_file_handler("change.wallpaper.intent")
-    def change_wallpaper(self, message):
-        # Get Current Wallpaper idx
-        current_idx = self.get_wallpaper_idx(self.selected_wallpaper)
-        collection_length = len(self.wallpaper_collection) - 1
-        if not current_idx == collection_length:
-            fidx = current_idx + 1
-            self.selected_wallpaper = self.wallpaper_collection[fidx]
-            self.settings["wallpaper"] = self.wallpaper_collection[fidx]
-
-        else:
-            self.selected_wallpaper = self.wallpaper_collection[0]
-            self.settings["wallpaper"] = self.wallpaper_collection[0]
-
-        self.gui['wallpaper_path'] = self.check_wallpaper_path(self.selected_wallpaper)
-        self.gui['selected_wallpaper'] = self.selected_wallpaper
-
-    def get_wallpaper_idx(self, filename):
-        try:
-            index_element = self.wallpaper_collection.index(filename)
-            return index_element
-        except ValueError:
-            return None
-
-    def handle_set_wallpaper(self, message):
-        image_url = message.data.get("url", "")
-        now = datetime.datetime.now()
-        setname = "wallpaper-" + now.strftime("%H%M%S") + ".jpg"
-        if image_url:
-            print(image_url)
-            response = requests.get(image_url)
-            with self.file_system.open(
-                path.join("wallpapers", setname), "wb") as my_file:
-                my_file.write(response.content)
-                my_file.close()
-            self.collect_wallpapers()
-            cidx = self.get_wallpaper_idx(setname)
-            self.selected_wallpaper = self.wallpaper_collection[cidx]
-            self.settings["wallpaper"] = self.wallpaper_collection[cidx]
-
-            self.gui['wallpaper_path'] = self.check_wallpaper_path(setname)
-            self.gui['selected_wallpaper'] = self.selected_wallpaper
-
-    def check_wallpaper_path(self, wallpaper):
-        file_def_check = self.def_wallpaper_folder + wallpaper
-        file_loc_check = self.loc_wallpaper_folder + wallpaper
-        if path.exists(file_def_check):
-            return self.def_wallpaper_folder
-        elif path.exists(file_loc_check):
-            return self.loc_wallpaper_folder
+        Each time this intent is executed the next item in the list of collected
+        wallpapers will be displayed and the skill setting will be updated.
+        """
+        self.wallpaper.next()
+        self.settings["wallpaper_file"] = self.wallpaper.file_name_setting
+        self.gui["wallpaperPath"] = str(self.wallpaper.selected)
+        self.bus.emit(Message("homescreen.wallpaper.changed"))
+        self.log.info(
+            "Home screen wallpaper changed to " + str(self.wallpaper.selected.name)
+        )
 
     def update_date(self):
         """Formats the datetime object returned from the parser for display purposes."""
@@ -251,9 +252,7 @@ class MycroftHomescreen(MycroftSkill):
             self.display_time = formatted_time
             self.gui["homeScreenTime"] = self.display_time
 
-    def stop(self):
-        pass
-
 
 def create_skill():
-    return MycroftHomescreen()
+    """Boilerplate code to instantiate the skill."""
+    return HomescreenSkill()
