@@ -75,16 +75,29 @@ Mycroft.Delegate {
             width: gridUnit * 3
         }
 
-        // The date of the most recent Mark II build.  Only displayed for developers.
+        // The date and time of the most recent Mark II build.  Only displayed for developers.
         HomeScreenLabel {
-            id: homeScreenBuildDate
+            id: homeScreenBuildDateTime
             anchors.bottom: parent.bottom
             anchors.left: parent.left
             anchors.leftMargin: gridUnit * 5
             fontSize: 22
             fontStyle: "Regular"
             heightUnits: 3
-            text: sessionData.buildDate
+            text: sessionData.buildDateTime ? "Build: " + sessionData.buildDateTime : ""
+            width: gridUnit * 10
+        }
+
+        // The date and time of the most recent skill update.  Only displayed for developers.
+        HomeScreenLabel {
+            id: homeScreenSkillDateTime
+            anchors.bottom: parent.bottom
+            anchors.left: parent.left
+            anchors.leftMargin: gridUnit * 30
+            fontSize: 22
+            fontStyle: "Regular"
+            heightUnits: 3
+            text: sessionData.skillDateTime ? "Skills: " + sessionData.skillDateTime : ""
             width: gridUnit * 10
         }
 
