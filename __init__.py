@@ -46,7 +46,7 @@ def _find_latest_skill_update(skill_info: dict) -> str:
             latest_update = updated_timestamp
 
     if latest_update:
-        latest_update_datetime = datetime.fromtimestamp(latest_update)
+        latest_update_datetime = datetime.utcfromtimestamp(latest_update)
         skill_update_datetime = latest_update_datetime.strftime("%Y-%m-%d %H:%M")
     else:
         skill_update_datetime = ""
@@ -120,6 +120,8 @@ class HomescreenSkill(MycroftSkill):
         self._init_wallpaper()
         self._schedule_clock_update()
         self._schedule_date_update()
+        self.schedule_weather_request()
+        self.query_active_alarms()
         self._schedule_skill_datetime_update()
         self._add_event_handlers()
 
@@ -146,7 +148,7 @@ class HomescreenSkill(MycroftSkill):
                 )
 
     def _schedule_clock_update(self):
-        """Check for a clock update every ten seconds; start on a minute boundary."""
+        """Checks for a clock update every ten seconds; start on a minute boundary."""
         clock_update_start_time = datetime.now().replace(second=0, microsecond=0)
         clock_update_start_time += timedelta(minutes=1)
         self.schedule_repeating_event(
@@ -154,15 +156,21 @@ class HomescreenSkill(MycroftSkill):
         )
 
     def _schedule_date_update(self):
-        """Check for a date update every minute; start on a minute boundary."""
+        """Checks for a date update every minute; start on a minute boundary."""
         date_update_start_time = datetime.now().replace(second=0, microsecond=0)
         date_update_start_time += timedelta(minutes=1)
         self.schedule_repeating_event(
             self.update_date, when=date_update_start_time, frequency=ONE_MINUTE
         )
 
+    def schedule_weather_request(self):
+        """Checks for a weather update every fifteen minutes."""
+        self.schedule_repeating_event(
+            self.request_weather, when=datetime.now(), frequency=FIFTEEN_MINUTES
+        )
+
     def _schedule_skill_datetime_update(self):
-        """Check for a weather update every fifteen minutes."""
+        """Schedules an hourly check for skills being updated."""
         self.schedule_repeating_event(
             self.update_skill_datetime, when=datetime.now(), frequency=ONE_HOUR
         )
@@ -180,22 +188,22 @@ class HomescreenSkill(MycroftSkill):
 
     def _add_event_handlers(self):
         """Defines the events this skill will listen for and their handlers."""
+        self.add_event("mycroft.skills.initialized", self.handle_initial_skill_load)
         self.add_event("skill.alarm.query-active.response", self.handle_alarm_status)
         self.add_event("skill.alarm.scheduled", self.handle_alarm_status)
         self.add_event(
             "skill.weather.local-forecast-obtained", self.handle_local_forecast_response
         )
 
-        # There is no guarantee of skill loading order, so wait until all skills are
-        # loaded before querying other skills.
-        self.add_event("mycroft.skills.initialized", self.schedule_weather_request)
-        self.add_event("mycroft.skills.initialized", self.query_active_alarms)
+    def handle_initial_skill_load(self):
+        """Queries other skills for data after all skills are loaded.
 
-    def schedule_weather_request(self):
-        """Check for a weather update every fifteen minutes."""
-        self.schedule_repeating_event(
-            self.request_weather, when=datetime.now(), frequency=FIFTEEN_MINUTES
-        )
+        There is no guarantee of skill loading order.  These queries will ensure the
+        home screen has the data it needs for the display when core is started or
+        restarted.
+        """
+        self.request_weather()
+        self.query_active_alarms()
 
     def query_active_alarms(self):
         """Emits a command over the message bus query for active alarms."""
