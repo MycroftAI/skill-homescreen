@@ -25,8 +25,33 @@ from .skill import Wallpaper, WallpaperError
 
 FIFTEEN_MINUTES = 900
 MARK_II = "mycroft_mark_2"
+ONE_HOUR = 3600
 ONE_MINUTE = 60
 TEN_SECONDS = 10
+
+
+def _find_latest_skill_update(skill_info: dict) -> str:
+    """Returns a string representation of the last time a skill was updated.
+
+    Args:
+        skill_info: contents of the installed skill data file built by MSM
+    """
+    latest_update = 0
+    for skill_attributes in skill_info["skills"]:
+        installed_timestamp = skill_attributes["installed"]
+        updated_timestamp = skill_attributes["updated"]
+        if installed_timestamp > latest_update:
+            latest_update = installed_timestamp
+        if updated_timestamp > latest_update:
+            latest_update = updated_timestamp
+
+    if latest_update:
+        latest_update_datetime = datetime.utcfromtimestamp(latest_update)
+        skill_update_datetime = latest_update_datetime.strftime("%Y-%m-%d %H:%M")
+    else:
+        skill_update_datetime = ""
+
+    return skill_update_datetime
 
 
 class HomescreenSkill(MycroftSkill):
@@ -57,6 +82,10 @@ class HomescreenSkill(MycroftSkill):
             platform = self.config_core["enclosure"].get("platform")
 
         return platform
+
+    @property
+    def is_development_device(self):
+        return self.config_core["enclosure"].get("development_device")
 
     def _handle_settings_change(self):
         """Reacts to changes in the user settings for this skill."""
@@ -91,6 +120,9 @@ class HomescreenSkill(MycroftSkill):
         self._init_wallpaper()
         self._schedule_clock_update()
         self._schedule_date_update()
+        self.schedule_weather_request()
+        self.query_active_alarms()
+        self._schedule_skill_datetime_update()
         self._add_event_handlers()
 
     def _init_gui_attributes(self):
@@ -116,7 +148,7 @@ class HomescreenSkill(MycroftSkill):
                 )
 
     def _schedule_clock_update(self):
-        """Check for a clock update every ten seconds; start on a minute boundary."""
+        """Checks for a clock update every ten seconds; start on a minute boundary."""
         clock_update_start_time = datetime.now().replace(second=0, microsecond=0)
         clock_update_start_time += timedelta(minutes=1)
         self.schedule_repeating_event(
@@ -124,40 +156,63 @@ class HomescreenSkill(MycroftSkill):
         )
 
     def _schedule_date_update(self):
-        """Check for a date update every minute; start on a minute boundary."""
+        """Checks for a date update every minute; start on a minute boundary."""
         date_update_start_time = datetime.now().replace(second=0, microsecond=0)
         date_update_start_time += timedelta(minutes=1)
         self.schedule_repeating_event(
             self.update_date, when=date_update_start_time, frequency=ONE_MINUTE
         )
 
+    def schedule_weather_request(self):
+        """Checks for a weather update every fifteen minutes."""
+        self.schedule_repeating_event(
+            self.request_weather, when=datetime.now(), frequency=FIFTEEN_MINUTES
+        )
+
+    def _schedule_skill_datetime_update(self):
+        """Schedules an hourly check for skills being updated."""
+        self.schedule_repeating_event(
+            self.update_skill_datetime, when=datetime.now(), frequency=ONE_HOUR
+        )
+
+    def update_skill_datetime(self):
+        """Sets the skill update date for display on the home screen."""
+        skill_update_datetime = ""
+        skill_info_path = Path("~/.mycroft/skills.json").expanduser()
+        if self.is_development_device and skill_info_path.is_file():
+            with open(skill_info_path) as skill_info_file:
+                skill_info = json.loads(skill_info_file.read())
+                skill_update_datetime = _find_latest_skill_update(skill_info)
+
+        self.gui["skillDateTime"] = skill_update_datetime
+
     def _add_event_handlers(self):
         """Defines the events this skill will listen for and their handlers."""
+        self.add_event("mycroft.skills.initialized", self.handle_initial_skill_load)
         self.add_event("skill.alarm.query-active.response", self.handle_alarm_status)
         self.add_event("skill.alarm.scheduled", self.handle_alarm_status)
         self.add_event(
             "skill.weather.local-forecast-obtained", self.handle_local_forecast_response
         )
 
-        # There is no guarantee of skill loading order, so wait until all skills are
-        # loaded before querying other skills.
-        self.add_event("mycroft.skills.initialized", self.schedule_weather_request)
-        self.add_event("mycroft.skills.initialized", self.query_active_alarms)
+    def handle_initial_skill_load(self):
+        """Queries other skills for data after all skills are loaded.
 
-    def schedule_weather_request(self):
-        """Check for a weather update every fifteen minutes."""
-        self.schedule_repeating_event(
-            self.request_weather, when=datetime.now(), frequency=FIFTEEN_MINUTES
-        )
-
-    def request_weather(self):
-        """Emits a command over the message bus to get the local weather forecast."""
-        command = Message("skill.weather.request-local-forecast")
-        self.bus.emit(command)
+        There is no guarantee of skill loading order.  These queries will ensure the
+        home screen has the data it needs for the display when core is started or
+        restarted.
+        """
+        self.request_weather()
+        self.query_active_alarms()
 
     def query_active_alarms(self):
         """Emits a command over the message bus query for active alarms."""
         command = Message("skill.alarm.query-active")
+        self.bus.emit(command)
+
+    def request_weather(self):
+        """Emits a command over the message bus to get the local weather forecast."""
+        command = Message("skill.weather.request-local-forecast")
         self.bus.emit(command)
 
     def handle_local_forecast_response(self, event: Message):
@@ -175,23 +230,22 @@ class HomescreenSkill(MycroftSkill):
         self.log.debug("Displaying the idle screen.")
         self.update_clock()
         self.update_date()
-        self._set_build_date()
+        self._set_build_datetime()
         self._show_page()
 
-    def _set_build_date(self):
+    def _set_build_datetime(self):
         """Sets the build date on the screen from a file, if it exists.
 
         The build date won't change without a reboot.  This only needs to occur once.
         """
-        build_date = ""
+        build_datetime = ""
         build_info_path = Path("/etc/mycroft/build-info.json")
-        is_development_device = self.config_core["enclosure"].get("development_device")
-        if is_development_device and build_info_path.is_file():
+        if self.is_development_device and build_info_path.is_file():
             with open(build_info_path) as build_info_file:
                 build_info = json.loads(build_info_file.read())
-                build_date = build_info.get("build_date", "")
+                build_datetime = build_info.get("build_date", "")
 
-        self.gui["buildDate"] = build_date
+        self.gui["buildDateTime"] = build_datetime[:-3]
 
     def _show_page(self):
         """Show the appropriate home screen based on the device platform."""

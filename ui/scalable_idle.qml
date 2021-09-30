@@ -227,14 +227,14 @@ Mycroft.CardDelegate {
     
     Label {
         id: buildDate
-        visible: sessionData.buildDate === "" ? 0 : 1
-        enabled: sessionData.buildDate === "" ? 0 : 1
+        visible: sessionData.buildDateTime === "" ? 0 : 1
+        enabled: sessionData.buildDateTime === "" ? 0 : 1
         anchors.left: parent.left
         anchors.bottom: parent.bottom
         anchors.bottomMargin: -Mycroft.Units.gridUnit * 2
         font.pixelSize: 22
         wrapMode: Text.WordWrap
-        text: "BI " + sessionData.buildDate
+        text: "BI " + sessionData.buildDateTime
         color: "white"
         layer.enabled: true
         layer.effect: DropShadow {
