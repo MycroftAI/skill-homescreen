@@ -117,6 +117,7 @@ class HomescreenSkill(MycroftSkill):
         self.schedule_weather_request()
         self.query_active_alarms()
         self._schedule_skill_datetime_update()
+        self.handle_initial_skill_load()
         self._add_event_handlers()
 
     def _init_gui_attributes(self):
@@ -191,7 +192,7 @@ class HomescreenSkill(MycroftSkill):
         )
 
     def handle_initial_skill_load(self):
-        """Queries other skills for data after all skills are loaded.
+        """Queries other skills for data to display and shows the resting screen.
 
         There is no guarantee of skill loading order.  These queries will ensure the
         home screen has the data it needs for the display when core is started or
@@ -199,6 +200,7 @@ class HomescreenSkill(MycroftSkill):
         """
         self.request_weather()
         self.query_active_alarms()
+        self.bus.emit(Message("mycroft.device.show.idle"))
 
     def query_active_alarms(self):
         """Emits a command over the message bus query for active alarms."""
