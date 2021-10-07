@@ -30,28 +30,22 @@ ONE_MINUTE = 60
 TEN_SECONDS = 10
 
 
-def _find_latest_skill_update(skill_info: dict) -> str:
+def _find_latest_skill_update(skills_directory: Path) -> str:
     """Returns a string representation of the last time a skill was updated.
 
     Args:
-        skill_info: contents of the installed skill data file built by MSM
+        skills_directory: directory containing all installed skills
     """
-    latest_update = 0
-    for skill_attributes in skill_info["skills"]:
-        installed_timestamp = skill_attributes["installed"]
-        updated_timestamp = skill_attributes["updated"]
-        if installed_timestamp > latest_update:
-            latest_update = installed_timestamp
-        if updated_timestamp > latest_update:
-            latest_update = updated_timestamp
+    latest_timestamp = 0
+    for skill_dir in skills_directory.iterdir():
+        init_file_path = skill_dir.joinpath("__init__.py")
+        if skill_dir.is_dir() and init_file_path.is_file():
+            skill_modified_time = init_file_path.stat().st_mtime
+            if skill_modified_time > latest_timestamp:
+                latest_timestamp = skill_modified_time
+    last_skill_update = datetime.utcfromtimestamp(latest_timestamp)
 
-    if latest_update:
-        latest_update_datetime = datetime.utcfromtimestamp(latest_update)
-        skill_update_datetime = latest_update_datetime.strftime("%Y-%m-%d %H:%M")
-    else:
-        skill_update_datetime = ""
-
-    return skill_update_datetime
+    return last_skill_update.strftime("%Y-%m-%d %H:%M")
 
 
 class HomescreenSkill(MycroftSkill):
@@ -176,15 +170,16 @@ class HomescreenSkill(MycroftSkill):
         )
 
     def update_skill_datetime(self):
-        """Sets the skill update date for display on the home screen."""
-        skill_update_datetime = ""
-        skill_info_path = Path("~/.mycroft/skills.json").expanduser()
-        if self.is_development_device and skill_info_path.is_file():
-            with open(skill_info_path) as skill_info_file:
-                skill_info = json.loads(skill_info_file.read())
-                skill_update_datetime = _find_latest_skill_update(skill_info)
+        """Sets the skill update date for display on the home screen.
 
-        self.gui["skillDateTime"] = skill_update_datetime
+        The Mycroft Skills Manager update system sets the modified date of a skill's
+        __init__.py file to the time the skill was updated to force a reload. Leverage
+        this to determine the last time MSM updated any skills.
+        """
+        if self.is_development_device:
+            skills_dir = Path("/opt/mycroft/skills")
+            last_skill_update = _find_latest_skill_update(skills_dir)
+            self.gui["skillDateTime"] = last_skill_update
 
     def _add_event_handlers(self):
         """Defines the events this skill will listen for and their handlers."""
@@ -227,7 +222,7 @@ class HomescreenSkill(MycroftSkill):
     @resting_screen_handler("Mycroft Homescreen")
     def handle_show_resting_screen(self, _):
         """Populates and shows the resting screen."""
-        self.log.debug("Displaying the idle screen.")
+        self.log.info("Displaying the Home Screen idle screen.")
         self.update_clock()
         self.update_date()
         self._set_build_datetime()
