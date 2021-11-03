@@ -17,6 +17,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
+from git import Git
+
 from mycroft.messagebus.message import Message
 from mycroft.skills import intent_handler, MycroftSkill, resting_screen_handler
 from mycroft.util.format import nice_time, nice_date
@@ -28,24 +30,6 @@ MARK_II = "mycroft_mark_2"
 ONE_HOUR = 3600
 ONE_MINUTE = 60
 TEN_SECONDS = 10
-
-
-def _find_latest_skill_update(skills_directory: Path) -> str:
-    """Returns a string representation of the last time a skill was updated.
-
-    Args:
-        skills_directory: directory containing all installed skills
-    """
-    latest_timestamp = 0
-    for skill_dir in skills_directory.iterdir():
-        init_file_path = skill_dir.joinpath("__init__.py")
-        if skill_dir.is_dir() and init_file_path.is_file():
-            skill_modified_time = init_file_path.stat().st_mtime
-            if skill_modified_time > latest_timestamp:
-                latest_timestamp = skill_modified_time
-    last_skill_update = datetime.utcfromtimestamp(latest_timestamp)
-
-    return last_skill_update.strftime("%Y-%m-%d %H:%M")
 
 
 class HomescreenSkill(MycroftSkill):
@@ -178,9 +162,12 @@ class HomescreenSkill(MycroftSkill):
         this to determine the last time MSM updated any skills.
         """
         if self.is_development_device:
-            skills_dir = Path("/opt/mycroft/skills")
-            last_skill_update = _find_latest_skill_update(skills_dir)
-            self.gui["skillDateTime"] = last_skill_update
+            skills_repo = Git("/opt/mycroft/.skills-repo")
+            last_commit_timestamp = skills_repo.log("-1", "--format=%ct")
+            last_commit_date_time = datetime.utcfromtimestamp(
+                int(last_commit_timestamp)
+            )
+            self.gui["skillDateTime"] = last_commit_date_time.strftime("%Y-%m-%d %H:%M")
 
     def _add_event_handlers(self):
         """Defines the events this skill will listen for and their handlers."""
