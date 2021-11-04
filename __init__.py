@@ -162,7 +162,7 @@ class HomescreenSkill(MycroftSkill):
         this to determine the last time MSM updated any skills.
         """
         if self.is_development_device:
-            skills_repo = Git("/opt/mycroft/.skills-repo")
+            skills_repo = Git(f"{self.config_core['data_dir']}/.skills-repo")
             last_commit_timestamp = skills_repo.log("-1", "--format=%ct")
             last_commit_date_time = datetime.utcfromtimestamp(
                 int(last_commit_timestamp)
