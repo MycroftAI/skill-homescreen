@@ -20,7 +20,7 @@ from typing import Optional
 from git import Git
 
 from mycroft.messagebus.message import Message
-from mycroft.skills import intent_handler, MycroftSkill, resting_screen_handler
+from mycroft.skills import intent_handler, IdleDisplaySkill
 from mycroft.util.format import nice_time, nice_date
 from mycroft.util.time import now_local
 from .skill import Wallpaper, WallpaperError
@@ -32,7 +32,7 @@ ONE_MINUTE = 60
 TEN_SECONDS = 10
 
 
-class HomescreenSkill(MycroftSkill):
+class HomescreenSkill(IdleDisplaySkill):
     """Skill to display a home screen (a.k.a. idle screen) on a GUI enabled device.
 
     Attributes:
@@ -94,6 +94,7 @@ class HomescreenSkill(MycroftSkill):
 
     def initialize(self):
         """Performs tasks after instantiation but before loading is complete."""
+        super().initialize()
         self._init_gui_attributes()
         self._init_wallpaper()
         self._schedule_clock_update()
@@ -208,8 +209,7 @@ class HomescreenSkill(MycroftSkill):
         """Use the alarm data from the event to control visibility of the alarm icon."""
         self.gui["showAlarmIcon"] = event.data["active_alarms"]
 
-    @resting_screen_handler("Mycroft Homescreen")
-    def handle_show_resting_screen(self, _):
+    def _show_idle_screen(self):
         """Populates and shows the resting screen."""
         self.log.info("Displaying the Home Screen idle screen.")
         self.update_clock()
