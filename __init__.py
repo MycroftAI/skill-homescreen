@@ -96,7 +96,6 @@ class HomescreenSkill(IdleDisplaySkill):
         """Performs tasks after instantiation but before loading is complete."""
         super().initialize()
         self._init_gui_attributes()
-        self._init_wallpaper()
         self._schedule_clock_update()
         self._schedule_date_update()
         self.schedule_weather_request()
@@ -188,7 +187,6 @@ class HomescreenSkill(IdleDisplaySkill):
         """
         self.request_weather()
         self.query_active_alarms()
-        self.bus.emit(Message("mycroft.device.show.idle"))
 
     def query_active_alarms(self):
         """Emits a command over the message bus query for active alarms."""
@@ -212,6 +210,7 @@ class HomescreenSkill(IdleDisplaySkill):
     def _show_idle_screen(self):
         """Populates and shows the resting screen."""
         self.log.info("Displaying the Home Screen idle screen.")
+        self._init_wallpaper()
         self.update_clock()
         self.update_date()
         self._set_build_datetime()
@@ -290,6 +289,8 @@ class HomescreenSkill(IdleDisplaySkill):
             self.display_time = formatted_time
             self.gui["homeScreenTime"] = self.display_time
 
+    def _show_internet_connecting_screen(self):
+        self.gui.show_page("internet_connect.qml")
 
 def create_skill():
     """Boilerplate code to instantiate the skill."""
