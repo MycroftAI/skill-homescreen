@@ -20,7 +20,7 @@ from typing import Optional
 from git import Git
 
 from mycroft.messagebus.message import Message
-from mycroft.skills import intent_handler, IdleDisplaySkill
+from mycroft.skills import AdaptIntent, IdleDisplaySkill, intent_handler
 from mycroft.util.format import nice_time, nice_date
 from mycroft.util.time import now_local
 from .skill import Wallpaper, WallpaperError
@@ -238,7 +238,9 @@ class HomescreenSkill(IdleDisplaySkill):
             page = "scalable_idle.qml"
         self.gui.show_page(page)
 
-    @intent_handler("change.wallpaper.intent")
+    @intent_handler(
+        AdaptIntent().require("change").one_of("background", "wallpaper")
+    )
     def change_wallpaper(self, _):
         """Handles a user's request to change the wallpaper.
 
