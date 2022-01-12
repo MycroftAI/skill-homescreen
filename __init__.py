@@ -289,8 +289,6 @@ class HomescreenSkill(IdleDisplaySkill):
             self.display_time = formatted_time
             self.gui["homeScreenTime"] = self.display_time
 
-    def _show_internet_connecting_screen(self):
-        self.gui.show_page("internet_connect.qml")
 
 def create_skill():
     """Boilerplate code to instantiate the skill."""
