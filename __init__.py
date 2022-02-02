@@ -247,13 +247,14 @@ class HomescreenSkill(IdleDisplaySkill):
         Each time this intent is executed the next item in the list of collected
         wallpapers will be displayed and the skill setting will be updated.
         """
-        self.wallpaper.next()
-        self.settings["wallpaper_file"] = self.wallpaper.file_name_setting
-        self.gui["wallpaperPath"] = str(self.wallpaper.selected)
-        self.bus.emit(Message("homescreen.wallpaper.changed"))
-        self.log.info(
-            "Home screen wallpaper changed to " + str(self.wallpaper.selected.name)
-        )
+        with self.activity():
+            self.wallpaper.next()
+            self.settings["wallpaper_file"] = self.wallpaper.file_name_setting
+            self.gui["wallpaperPath"] = str(self.wallpaper.selected)
+            self.bus.emit(Message("homescreen.wallpaper.changed"))
+            self.log.info(
+                "Home screen wallpaper changed to " + str(self.wallpaper.selected.name)
+            )
 
     def update_date(self):
         """Formats the datetime object returned from the parser for display purposes."""
