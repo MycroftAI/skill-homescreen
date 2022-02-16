@@ -207,6 +207,14 @@ class HomescreenSkill(IdleDisplaySkill):
         """Use the alarm data from the event to control visibility of the alarm icon."""
         self.gui["showAlarmIcon"] = event.data["active_alarms"]
 
+    @intent_handler(
+        AdaptIntent().require("show").require("home")
+    )
+    def show_homescreen(self, _):
+        """Handles a user's request to show the home screen."""
+        with self.activity():
+            self._show_idle_screen()
+
     def _show_idle_screen(self):
         """Populates and shows the resting screen."""
         self.log.info("Displaying the Home Screen idle screen.")
