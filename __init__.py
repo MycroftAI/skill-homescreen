@@ -111,20 +111,15 @@ class HomescreenSkill(IdleDisplaySkill):
 
     def _init_wallpaper(self):
         """When the skill loads, determine the wallpaper to display"""
-        if self.gui.connected:
-            self.wallpaper.file_name_setting = self.settings.get("wallpaper_file")
-            self.wallpaper.url_setting = self.settings.get("wallpaper_url")
-            try:
-                self.wallpaper.set()
-            except WallpaperError:
-                self.log.exception("An error occurred setting the wallpaper.")
-                self.gui["wallpaperPath"] = None
-            else:
-                self.gui["wallpaperPath"] = str(self.wallpaper.selected)
-                self.log.info(
-                    "Home screen wallpaper changed to "
-                    + str(self.wallpaper.selected.name)
-                )
+        self.wallpaper.file_name_setting = self.settings.get("wallpaper_file")
+        self.wallpaper.url_setting = self.settings.get("wallpaper_url")
+        try:
+            self.wallpaper.set()
+        except WallpaperError:
+            self.log.exception("An error occurred setting the wallpaper.")
+            self.gui["wallpaperPath"] = None
+        else:
+            self.gui["wallpaperPath"] = str(self.wallpaper.selected)
 
     def _schedule_clock_update(self):
         """Checks for a clock update every ten seconds; start on a minute boundary."""
