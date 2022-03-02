@@ -124,5 +124,18 @@ Mycroft.Delegate {
             text: sessionData.homeScreenDate
             width: parent.width
         }
+
+        // Mycroft Logo
+        Image {
+            id: mycroftLogo
+            visible: !sessionData.skillDateTime
+            source: Qt.resolvedUrl("icons/mycroft.svg")
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 0
+            anchors.right: parent.right
+            anchors.rightMargin: 0
+            width: gridUnit * 3
+            height: gridUnit * 3
+        }
     }
 }
