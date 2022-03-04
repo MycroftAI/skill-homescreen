@@ -95,6 +95,7 @@ class HomescreenSkill(IdleDisplaySkill):
     def initialize(self):
         """Performs tasks after instantiation but before loading is complete."""
         super().initialize()
+        self._load_resources()
         self._init_gui_attributes()
         self._schedule_clock_update()
         self._schedule_date_update()
@@ -103,6 +104,9 @@ class HomescreenSkill(IdleDisplaySkill):
         self._schedule_skill_datetime_update()
         self.handle_initial_skill_load()
         self._add_event_handlers()
+
+    def _load_resources(self):
+        self.name_regex = self.resources.load_regex_file("name")
 
     def _init_gui_attributes(self):
         self.gui["showAlarmIcon"] = False
@@ -202,9 +206,7 @@ class HomescreenSkill(IdleDisplaySkill):
         """Use the alarm data from the event to control visibility of the alarm icon."""
         self.gui["showAlarmIcon"] = event.data["active_alarms"]
 
-    @intent_handler(
-        AdaptIntent().require("show").require("home")
-    )
+    @intent_handler(AdaptIntent().require("show").require("home"))
     def show_homescreen(self, _):
         """Handles a user's request to show the home screen."""
         with self.activity():
@@ -241,17 +243,27 @@ class HomescreenSkill(IdleDisplaySkill):
             page = "scalable_idle.qml"
         self.gui.show_page(page)
 
-    @intent_handler(
-        AdaptIntent().require("change").one_of("background", "wallpaper")
-    )
-    def change_wallpaper(self, _):
+    @intent_handler(AdaptIntent().require("change").one_of("background", "wallpaper"))
+    def change_wallpaper(self, message):
         """Handles a user's request to change the wallpaper.
 
         Each time this intent is executed the next item in the list of collected
         wallpapers will be displayed and the skill setting will be updated.
         """
         with self.activity():
-            self.wallpaper.next()
+            utterance = message.data.get("utterance", "")
+            wallpaper_name = self.wallpaper.extract_wallpaper_name(
+                self.name_regex, utterance
+            )
+            if wallpaper_name:
+                if not self.wallpaper.next_by_alias(wallpaper_name):
+                    self.speak_dialog(
+                        "wallpaper-not-found", data={"name": wallpaper_name}
+                    )
+                    return
+            else:
+                self.wallpaper.next()
+
             self.settings["wallpaper_file"] = self.wallpaper.file_name_setting
             self.gui["wallpaperPath"] = str(self.wallpaper.selected)
             self.bus.emit(Message("homescreen.wallpaper.changed"))

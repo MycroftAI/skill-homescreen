@@ -13,14 +13,27 @@
 # limitations under the License.
 """Wallpaper management for the home screen."""
 import imghdr
+import random
 from pathlib import Path
 
 import requests
 
+from mycroft.skills.skill_data import RegexExtractor
 from mycroft.util.log import LOG
 
 DEFAULT_WALLPAPER = "blackwater-river.png"
 CUSTOM_WALLPAPER = "custom-wallpaper.jpg"
+WALLPAPER_ALIASES = {
+    "blackwater-river.png": ["blackwater", "river", "default"],
+    "blue.png": ["blue"],
+    "chukchi-sea.png": ["sea", "ocean", "water"],
+    "earth-night.png": ["earth", "night", "tonight"],
+    "green.png": ["green"],
+    "moon.png": ["moon"],
+    "nebula.png": ["nebula", "space"],
+    "orange.png": ["orange"],
+    "tokyo-night.png": ["city", "night", "tonight"],
+}
 
 
 def _download_from_url(wallpaper_url):
@@ -39,7 +52,9 @@ def _download_from_url(wallpaper_url):
 
 class WallpaperError(Exception):
     """Raised when an error occurs when loading a wallpaper."""
+
     pass
+
 
 class Wallpaper:
     """
@@ -49,6 +64,7 @@ class Wallpaper:
         skill_directory: the wallpaper directory in the home screen skill
         skill_data_directory: a directory on the device for storing user-defined wallpapers
     """
+
     def __init__(self, skill_root_dir: str, skill_data_dir: str):
         self.skill_directory = Path(skill_root_dir).joinpath("ui/wallpapers")
         self.skill_data_directory = Path(skill_data_dir).joinpath("wallpapers")
@@ -98,6 +114,32 @@ class Wallpaper:
 
         self.file_name_setting = self.selected.name
 
+    def extract_wallpaper_name(self, name_regex, utterance: str) -> str:
+        name_extractor = RegexExtractor("Name", name_regex)
+        return name_extractor.extract(utterance).strip()
+
+    def next_by_alias(self, alias: str) -> bool:
+        alias = alias.lower().strip()
+        file_names = set()
+
+        for file_name, aliases in WALLPAPER_ALIASES.items():
+            if alias in aliases:
+                file_names.add(file_name)
+
+        file_names.discard(self.file_name_setting)
+
+        if file_names:
+            next_file_name = random.choice(list(file_names))
+            for path in self.collection:
+                if path.name == next_file_name:
+                    LOG.info("Alias %s matched %s", alias, path.name)
+                    self.selected = path
+                    self.file_name_setting = self.selected.name
+                    return True
+
+        LOG.info("Alias %s did not match any wallpapers", alias)
+
+        return False
 
     def _add_custom(self):
         """Adds a new wallpaper to the collection and selects it for display."""
