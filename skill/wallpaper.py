@@ -14,6 +14,7 @@
 """Wallpaper management for the home screen."""
 import imghdr
 import random
+import typing
 from pathlib import Path
 
 import requests
@@ -114,9 +115,15 @@ class Wallpaper:
 
         self.file_name_setting = self.selected.name
 
-    def extract_wallpaper_name(self, name_regex, utterance: str) -> str:
+    def extract_wallpaper_name(
+        self, name_regex, utterance: str
+    ) -> typing.Optional[str]:
         name_extractor = RegexExtractor("Name", name_regex)
-        return name_extractor.extract(utterance).strip()
+        match = name_extractor.extract(utterance)
+        if match:
+            return match.strip()
+
+        return None
 
     def next_by_alias(self, alias: str) -> bool:
         alias = alias.lower().strip()
