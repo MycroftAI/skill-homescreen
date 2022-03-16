@@ -112,6 +112,7 @@ class HomescreenSkill(IdleDisplaySkill):
         self.gui["showAlarmIcon"] = False
         self.gui["homeScreenTemperature"] = None
         self.gui["homeScreenWeatherCondition"] = None
+        self.gui["isMuted"] = False
 
     def _init_wallpaper(self):
         """When the skill loads, determine the wallpaper to display"""
@@ -176,6 +177,8 @@ class HomescreenSkill(IdleDisplaySkill):
         self.add_event(
             "skill.weather.local-forecast-obtained", self.handle_local_forecast_response
         )
+        self.add_event("mycroft.mic.mute", self.handle_mute)
+        self.add_event("mycroft.mic.unmute", self.handle_unmute)
 
     def handle_initial_skill_load(self):
         """Queries other skills for data to display and shows the resting screen.
@@ -306,6 +309,12 @@ class HomescreenSkill(IdleDisplaySkill):
         if self.display_time != formatted_time:
             self.display_time = formatted_time
             self.gui["homeScreenTime"] = self.display_time
+
+    def handle_mute(self, _message=None):
+        self.gui["isMuted"] = True
+
+    def handle_unmute(self, _message=None):
+        self.gui["isMuted"] = False
 
 
 def create_skill():

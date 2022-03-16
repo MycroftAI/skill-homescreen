@@ -125,6 +125,18 @@ Mycroft.Delegate {
             width: parent.width
         }
 
+        // Muted
+        Image {
+            id: muted
+            visible: sessionData.isMuted
+            source: Qt.resolvedUrl("icons/mic-mute.svg")
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 0
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: gridUnit * 3
+            height: gridUnit * 3
+        }
+
         // Mycroft Logo
         Image {
             id: mycroftLogo
