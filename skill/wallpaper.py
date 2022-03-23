@@ -133,7 +133,10 @@ class Wallpaper:
             if alias in aliases:
                 file_names.add(file_name)
 
-        file_names.discard(self.file_name_setting)
+        if len(file_names) > 1:
+            # If there are multiple possibilities, choose one that isn't
+            # currently selected.
+            file_names.discard(self.file_name_setting)
 
         if file_names:
             next_file_name = random.choice(list(file_names))

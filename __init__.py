@@ -79,7 +79,12 @@ class HomescreenSkill(IdleDisplaySkill):
                 self.gui["wallpaperPath"] = None
             else:
                 self.gui["wallpaperPath"] = str(self.wallpaper.selected)
-                self.bus.emit(Message("homescreen.wallpaper.changed"))
+                self.bus.emit(
+                    Message(
+                        "homescreen.wallpaper.changed",
+                        data={"name": self.wallpaper.file_name_setting},
+                    )
+                )
 
     def _check_for_wallpaper_setting_change(self):
         """Determine if the new settings are related to the wallpaper."""
@@ -269,7 +274,12 @@ class HomescreenSkill(IdleDisplaySkill):
 
             self.settings["wallpaper_file"] = self.wallpaper.file_name_setting
             self.gui["wallpaperPath"] = str(self.wallpaper.selected)
-            self.bus.emit(Message("homescreen.wallpaper.changed"))
+            self.bus.emit(
+                Message(
+                    "homescreen.wallpaper.changed",
+                    data={"name": self.wallpaper.file_name_setting},
+                )
+            )
             self.log.info(
                 "Home screen wallpaper changed to " + str(self.wallpaper.selected.name)
             )
