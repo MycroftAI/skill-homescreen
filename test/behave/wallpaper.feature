@@ -15,9 +15,10 @@ Feature: Manage the device wallpaper
   Scenario Outline: Allow user to change to a named wallpaper
     Given an english speaking user
       When the user says "<wallpaper name request>"
-      Then the wallpaper should be changed to green
+      Then the wallpaper should be changed to "<name>"
 
-   Examples: change the wallpaper to green
-     | wallpaper name request |
-     | change background to green |
-     | change homescreen wallpaper to green |
+   Examples: change the wallpaper
+     | wallpaper name request | name |
+     | change wallpaper to green | green |
+     | change wallpaper to blue | blue |
+     | change wallpaper to moon | moon |

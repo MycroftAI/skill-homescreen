@@ -34,6 +34,8 @@ def check_wallpaper_changed(context):
 @then("the wallpaper should be changed to {name}")
 def check_wallpaper_changed_green(context, name):
     """When the wallpaper changes, an event is emitted on the bus with the name."""
+    # Strip quotes
+    name = name.replace('"', "")
 
     def match_name(message):
         actual_name = message.data.get("name")
