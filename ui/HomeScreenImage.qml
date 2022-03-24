@@ -27,9 +27,10 @@ import QtGraphicalEffects 1.0
 Item {
     property alias imageSource: homeScreenImage.source
     property int heightUnits
+    property int widthUnits
 
     height: gridUnit * heightUnits
-    width: parent.width
+    width: widthUnits ? widthUnits * 3 : parent.width
 
         Image {
             id: homeScreenImage
