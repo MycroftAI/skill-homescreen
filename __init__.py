@@ -20,7 +20,7 @@ from typing import Optional
 from git import Git
 
 from mycroft.messagebus.message import Message
-from mycroft.skills import intent_handler, MycroftSkill, resting_screen_handler
+from mycroft.skills import AdaptIntent, IdleDisplaySkill, intent_handler
 from mycroft.util.format import nice_time, nice_date
 from mycroft.util.time import now_local
 from .skill import Wallpaper, WallpaperError
@@ -32,7 +32,7 @@ ONE_MINUTE = 60
 TEN_SECONDS = 10
 
 
-class HomescreenSkill(MycroftSkill):
+class HomescreenSkill(IdleDisplaySkill):
     """Skill to display a home screen (a.k.a. idle screen) on a GUI enabled device.
 
     Attributes:
@@ -79,7 +79,12 @@ class HomescreenSkill(MycroftSkill):
                 self.gui["wallpaperPath"] = None
             else:
                 self.gui["wallpaperPath"] = str(self.wallpaper.selected)
-                self.bus.emit(Message("homescreen.wallpaper.changed"))
+                self.bus.emit(
+                    Message(
+                        "homescreen.wallpaper.changed",
+                        data={"name": self.wallpaper.file_name_setting},
+                    )
+                )
 
     def _check_for_wallpaper_setting_change(self):
         """Determine if the new settings are related to the wallpaper."""
@@ -94,8 +99,9 @@ class HomescreenSkill(MycroftSkill):
 
     def initialize(self):
         """Performs tasks after instantiation but before loading is complete."""
+        super().initialize()
+        self._load_resources()
         self._init_gui_attributes()
-        self._init_wallpaper()
         self._schedule_clock_update()
         self._schedule_date_update()
         self.schedule_weather_request()
@@ -104,27 +110,26 @@ class HomescreenSkill(MycroftSkill):
         self.handle_initial_skill_load()
         self._add_event_handlers()
 
+    def _load_resources(self):
+        self.name_regex = self.resources.load_regex_file("name")
+
     def _init_gui_attributes(self):
         self.gui["showAlarmIcon"] = False
         self.gui["homeScreenTemperature"] = None
         self.gui["homeScreenWeatherCondition"] = None
+        self.gui["isMuted"] = False
 
     def _init_wallpaper(self):
         """When the skill loads, determine the wallpaper to display"""
-        if self.gui.connected:
-            self.wallpaper.file_name_setting = self.settings.get("wallpaper_file")
-            self.wallpaper.url_setting = self.settings.get("wallpaper_url")
-            try:
-                self.wallpaper.set()
-            except WallpaperError:
-                self.log.exception("An error occurred setting the wallpaper.")
-                self.gui["wallpaperPath"] = None
-            else:
-                self.gui["wallpaperPath"] = str(self.wallpaper.selected)
-                self.log.info(
-                    "Home screen wallpaper changed to "
-                    + str(self.wallpaper.selected.name)
-                )
+        self.wallpaper.file_name_setting = self.settings.get("wallpaper_file")
+        self.wallpaper.url_setting = self.settings.get("wallpaper_url")
+        try:
+            self.wallpaper.set()
+        except WallpaperError:
+            self.log.exception("An error occurred setting the wallpaper.")
+            self.gui["wallpaperPath"] = None
+        else:
+            self.gui["wallpaperPath"] = str(self.wallpaper.selected)
 
     def _schedule_clock_update(self):
         """Checks for a clock update every ten seconds; start on a minute boundary."""
@@ -173,10 +178,12 @@ class HomescreenSkill(MycroftSkill):
         """Defines the events this skill will listen for and their handlers."""
         self.add_event("mycroft.skills.initialized", self.handle_initial_skill_load)
         self.add_event("skill.alarm.query-active.response", self.handle_alarm_status)
-        self.add_event("skill.alarm.scheduled", self.handle_alarm_status)
+        self.add_event("skill.alarm.status", self.handle_alarm_status)
         self.add_event(
             "skill.weather.local-forecast-obtained", self.handle_local_forecast_response
         )
+        self.add_event("mycroft.mic.mute", self.handle_mute)
+        self.add_event("mycroft.mic.unmute", self.handle_unmute)
 
     def handle_initial_skill_load(self):
         """Queries other skills for data to display and shows the resting screen.
@@ -187,7 +194,6 @@ class HomescreenSkill(MycroftSkill):
         """
         self.request_weather()
         self.query_active_alarms()
-        self.bus.emit(Message("mycroft.device.show.idle"))
 
     def query_active_alarms(self):
         """Emits a command over the message bus query for active alarms."""
@@ -208,10 +214,16 @@ class HomescreenSkill(MycroftSkill):
         """Use the alarm data from the event to control visibility of the alarm icon."""
         self.gui["showAlarmIcon"] = event.data["active_alarms"]
 
-    @resting_screen_handler("Mycroft Homescreen")
-    def handle_show_resting_screen(self, _):
+    @intent_handler(AdaptIntent().require("show").require("home"))
+    def show_homescreen(self, _):
+        """Handles a user's request to show the home screen."""
+        with self.activity():
+            self._show_idle_screen()
+
+    def _show_idle_screen(self):
         """Populates and shows the resting screen."""
         self.log.info("Displaying the Home Screen idle screen.")
+        self._init_wallpaper()
         self.update_clock()
         self.update_date()
         self._set_build_datetime()
@@ -239,20 +251,38 @@ class HomescreenSkill(MycroftSkill):
             page = "scalable_idle.qml"
         self.gui.show_page(page)
 
-    @intent_handler("change.wallpaper.intent")
-    def change_wallpaper(self, _):
+    @intent_handler(AdaptIntent().require("change").one_of("background", "wallpaper"))
+    def change_wallpaper(self, message):
         """Handles a user's request to change the wallpaper.
 
         Each time this intent is executed the next item in the list of collected
         wallpapers will be displayed and the skill setting will be updated.
         """
-        self.wallpaper.next()
-        self.settings["wallpaper_file"] = self.wallpaper.file_name_setting
-        self.gui["wallpaperPath"] = str(self.wallpaper.selected)
-        self.bus.emit(Message("homescreen.wallpaper.changed"))
-        self.log.info(
-            "Home screen wallpaper changed to " + str(self.wallpaper.selected.name)
-        )
+        with self.activity():
+            utterance = message.data.get("utterance", "")
+            wallpaper_name = self.wallpaper.extract_wallpaper_name(
+                self.name_regex, utterance
+            )
+            if wallpaper_name:
+                if not self.wallpaper.next_by_alias(wallpaper_name):
+                    self.speak_dialog(
+                        "wallpaper-not-found", data={"name": wallpaper_name}
+                    )
+                    return
+            else:
+                self.wallpaper.next()
+
+            self.settings["wallpaper_file"] = self.wallpaper.file_name_setting
+            self.gui["wallpaperPath"] = str(self.wallpaper.selected)
+            self.bus.emit(
+                Message(
+                    "homescreen.wallpaper.changed",
+                    data={"name": self.wallpaper.file_name_setting},
+                )
+            )
+            self.log.info(
+                "Home screen wallpaper changed to " + str(self.wallpaper.selected.name)
+            )
 
     def update_date(self):
         """Formats the datetime object returned from the parser for display purposes."""
@@ -289,6 +319,12 @@ class HomescreenSkill(MycroftSkill):
         if self.display_time != formatted_time:
             self.display_time = formatted_time
             self.gui["homeScreenTime"] = self.display_time
+
+    def handle_mute(self, _message=None):
+        self.gui["isMuted"] = True
+
+    def handle_unmute(self, _message=None):
+        self.gui["isMuted"] = False
 
 
 def create_skill():

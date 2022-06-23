@@ -124,5 +124,37 @@ Mycroft.Delegate {
             text: sessionData.homeScreenDate
             width: parent.width
         }
+
+
+        Item {
+            id: hardwareStatusIcons
+            anchors.bottom: parent.bottom
+            anchors.left: parent.left
+            anchors.leftMargin: gridUnit * 12
+            anchors.horizontalCenter: parent.horizontalCenter
+            height: gridUnit * 3
+            width: gridUnit * 21
+
+            // Muted microphone icon that is displayed when the microphone is off.
+            HomeScreenImage {
+                id: homeScreenMicMuted
+                anchors.bottom: parent.bottom
+                anchors.horizontalCenter: parent.horizontalCenter
+                heightUnits: 3
+                imageSource: "icons/mic-mute.svg"
+                visible: sessionData.isMuted
+            }
+        }
+
+        // Mycroft Logo
+        HomeScreenImage {
+            id: homeScreenMycroftLogo
+            anchors.bottom: parent.bottom
+            anchors.right: parent.right
+            heightUnits: 3
+            imageSource: "icons/mycroft-logo.png"
+            widthUnits: 3
+            visible: !sessionData.skillDateTime
+        }
     }
 }
